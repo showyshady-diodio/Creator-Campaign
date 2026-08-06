@@ -189,8 +189,11 @@
     </div>
     <div class="modal" id="campaignModal"><div class="modal-box"><h2>新建 Campaign</h2><p>先录入最小 Brief，后续由需求洞察和销售方案流程补齐。</p><form id="campaignForm"><div class="form-grid"><div class="field"><label>客户 / 项目名称</label><input required placeholder="例如：Aster Fitness" /></div><div class="field"><label>目标市场</label><input required placeholder="例如：马来西亚" /></div><div class="field"><label>预算（美元）</label><input type="number" placeholder="例如：12000" /></div><div class="field"><label>项目阶段</label><select><option>新客户 Brief</option><option>销售方案</option><option>交付准备</option><option>执行中</option></select></div><div class="field full"><label>客户原始诉求</label><textarea placeholder="粘贴客户访谈、销售反馈或 Campaign Brief…"></textarea></div></div><div class="modal-actions"><button type="button" class="secondary" id="closeModal">取消</button><button class="primary">创建并进入洞察</button></div></form></div></div>
     <div class="toast" id="toast">已创建模拟 Campaign，可在下一版接入 Dify。</div>
+    <!-- legacy script disabled during API integration
     <script>
       const $ = (s) => document.querySelector(s);
+      // 这是公开的 Worker 地址；Dify API Key 只保存在 Worker 的 Secret 中。
+      const WORKER_API_URL = 'https://fcampaign-ai-proxy.beijingdiodio.workers.dev';
       const pageIds = ['dashboard', 'projectPage', 'opportunitiesPage', 'creatorsPage', 'analyticsPage', 'knowledgePage'];
       const go = (pageId) => { pageIds.forEach(id => { const page = $('#' + id); page.style.display = id === pageId ? 'block' : 'none'; page.classList.toggle('show', id === pageId); }); window.scrollTo({top:0,behavior:'smooth'}); };
       const showProject = () => go('projectPage');
@@ -200,7 +203,135 @@
       document.querySelectorAll('.nav button').forEach(btn => btn.onclick = () => { document.querySelectorAll('.nav button').forEach(x=>x.classList.remove('active')); btn.classList.add('active'); go(btn.dataset.view); });
       const modal = $('#campaignModal'); $('#openModal').onclick = () => modal.classList.add('show'); $('#closeModal').onclick = () => modal.classList.remove('show'); modal.onclick = e => { if(e.target === modal) modal.classList.remove('show'); };
       $('#openModal2').onclick = () => modal.classList.add('show');
-      $('#campaignForm').onsubmit = e => { e.preventDefault(); modal.classList.remove('show'); const toast=$('#toast'); toast.classList.add('show'); setTimeout(()=>toast.classList.remove('show'),2800); };
+      const showToast = (message) => { const toast=$('#toast'); toast.textContent=message; toast.classList.add('show'); setTimeout(()=>toast.classList.remove('show'),3200); };
+      const showAiResult = (answer, projectName) => {
+        let card = $('#aiResultCard');
+        if (!card) {
+          card = document.createElement('section');
+          card.id = 'aiResultCard'; card.className = 'card document';
+          card.style.marginTop = '20px';
+          $('#overview').appendChild(card);
+        }
+        card.innerHTML = '<div class="card-head"><h2 class="card-title">AI 需求洞察与销售方案</h2><span class="badge blue">Dify 总控台</span></div><p style="color:var(--muted);font-size:13px">' + projectName.replace(/[<>&]/g, '') + ' · 刚刚生成</p><div id="aiResult" style="white-space:pre-wrap;line-height:1.75"></div>';
+        $('#aiResult').textContent = answer;
+      };
+      $('#campaignForm').onsubmit = async e => {
+        e.preventDefault();
+        const form = e.currentTarget;
+        const inputs = form.querySelectorAll('input');
+        const projectName = inputs[0].value.trim();
+        const market = inputs[1].value.trim();
+        const budget = inputs[2].value.trim() || '未提供';
+        const stage = form.querySelector('select').value;
+        const originalBrief = form.querySelector('textarea').value.trim();
+        const brief = `【项目名称】${projectName}\n【目标市场】${market}\n【预算】${budget} 美元\n【项目阶段】${stage}\n【客户原始诉求】${originalBrief || '未补充，请先识别关键信息缺口。'}`;
+        const submit = form.querySelector('button.primary');
+        submit.disabled = true; submit.textContent = '正在生成方案…';
+        try {
+          const response = await fetch(WORKER_API_URL, { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({brief, user: 'web-demo-user'}) });
+          const data = await response.json();
+          if (!response.ok) throw new Error(data.error || 'Dify 服务暂时不可用');
+          modal.classList.remove('show');
+          showAiResult(data.answer || '未收到有效回复。', projectName);
+          showProject();
+          showToast('已生成洞察与销售方案。');
+        } catch (error) {
+          showToast('生成失败：' + error.message);
+        } finally {
+          submit.disabled = false; submit.textContent = '创建并进入洞察';
+        }
+      };
+    </script>
+    -->
+    <script>
+      const q = (selector) => document.querySelector(selector);
+      const WORKER_API_URL = 'https://fcampaign-ai-proxy.beijingdiodio.workers.dev';
+      const pageIds = ['dashboard', 'projectPage', 'opportunitiesPage', 'creatorsPage', 'analyticsPage', 'knowledgePage'];
+      const go = (pageId) => {
+        pageIds.forEach((id) => {
+          const page = q('#' + id);
+          page.style.display = id === pageId ? 'block' : 'none';
+          page.classList.toggle('show', id === pageId);
+        });
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      };
+      const showProject = () => go('projectPage');
+      const showDashboard = () => go('dashboard');
+      q('#openProject').onclick = showProject;
+      q('#fitnessProject').onclick = showProject;
+      q('#viewProject').onclick = showProject;
+      q('#backDashboard').onclick = showDashboard;
+      document.querySelectorAll('.tabs button').forEach((button) => {
+        button.onclick = () => {
+          document.querySelectorAll('.tabs button').forEach((item) => item.classList.remove('active'));
+          document.querySelectorAll('.tab-panel').forEach((item) => item.classList.remove('show'));
+          button.classList.add('active');
+          q('#' + button.dataset.tab).classList.add('show');
+        };
+      });
+      document.querySelectorAll('.nav button').forEach((button) => {
+        button.onclick = () => {
+          document.querySelectorAll('.nav button').forEach((item) => item.classList.remove('active'));
+          button.classList.add('active');
+          go(button.dataset.view);
+        };
+      });
+      const modal = q('#campaignModal');
+      q('#openModal').onclick = () => modal.classList.add('show');
+      q('#openModal2').onclick = () => modal.classList.add('show');
+      q('#closeModal').onclick = () => modal.classList.remove('show');
+      modal.onclick = (event) => { if (event.target === modal) modal.classList.remove('show'); };
+      const showToast = (message) => {
+        const toast = q('#toast');
+        toast.textContent = message;
+        toast.classList.add('show');
+        setTimeout(() => toast.classList.remove('show'), 3200);
+      };
+      const showAiResult = (answer, projectName) => {
+        let card = q('#aiResultCard');
+        if (!card) {
+          card = document.createElement('section');
+          card.id = 'aiResultCard';
+          card.className = 'card document';
+          card.style.marginTop = '20px';
+          q('#overview').appendChild(card);
+        }
+        card.innerHTML = '<div class="card-head"><h2 class="card-title">AI Insight and Sales Proposal</h2><span class="badge blue">Dify Control Center</span></div><p style="color:var(--muted);font-size:13px"></p><div id="aiResult" style="white-space:pre-wrap;line-height:1.75"></div>';
+        card.querySelector('p').textContent = projectName + ' - generated now';
+        q('#aiResult').textContent = answer;
+      };
+      q('#campaignForm').onsubmit = async (event) => {
+        event.preventDefault();
+        const form = event.currentTarget;
+        const inputs = form.querySelectorAll('input');
+        const projectName = inputs[0].value.trim();
+        const market = inputs[1].value.trim();
+        const budget = inputs[2].value.trim() || 'Not provided';
+        const stage = form.querySelector('select').value;
+        const originalBrief = form.querySelector('textarea').value.trim();
+        const brief = `Project: ${projectName}\nMarket: ${market}\nBudget: ${budget} USD\nStage: ${stage}\nOriginal client brief: ${originalBrief || 'Not provided. Identify the key information gaps first.'}`;
+        const submit = form.querySelector('button.primary');
+        submit.disabled = true;
+        submit.textContent = 'Generating...';
+        try {
+          const response = await fetch(WORKER_API_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ brief, user: 'web-demo-user' })
+          });
+          const data = await response.json();
+          if (!response.ok) throw new Error(data.error || 'Dify service is unavailable');
+          modal.classList.remove('show');
+          showAiResult(data.answer || 'No valid answer returned.', projectName);
+          showProject();
+          showToast('AI result created.');
+        } catch (error) {
+          showToast('Generation failed: ' + error.message);
+        } finally {
+          submit.disabled = false;
+          submit.textContent = 'Create and analyze';
+        }
+      };
     </script>
   </body>
 </html>
