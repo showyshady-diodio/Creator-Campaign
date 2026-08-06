@@ -59,6 +59,8 @@
       .project-list { padding: 0 8px 9px; }
       .project-row { display: grid; grid-template-columns: 1.35fr .62fr .56fr .6fr 28px; gap: 12px; align-items: center; padding: 13px 11px; border-top: 1px solid #f0f1f5; border-radius: 10px; }
       .project-row:hover { background: #fafaff; }
+      .project-row.clickable { cursor: pointer; }
+      .project-row.clickable:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
       .project-name { display: flex; align-items: center; gap: 10px; font-weight: 650; }
       .logo { display: grid; place-items: center; width: 33px; height: 33px; border-radius: 10px; font-size: 16px; background: #eef0ff; }
       .logo.mint { background: #e5fbf1; } .logo.orange { background: #fff1e6; } .logo.blue { background: #e8f3ff; }
@@ -277,8 +279,14 @@
         };
       });
       const modal = q('#campaignModal');
-      q('#openModal').onclick = () => modal.classList.add('show');
-      q('#openModal2').onclick = () => modal.classList.add('show');
+      const prepareOpportunityModal = () => {
+        modal.querySelector('h2').textContent = '新建客户机会';
+        modal.querySelector('p').textContent = '录入客户原始诉求，系统将生成需求洞察与销售方案。';
+        modal.querySelector('button.primary').textContent = '创建机会并生成方案';
+      };
+      q('#openModal').textContent = '＋ 新建客户机会';
+      q('#openModal').onclick = () => { prepareOpportunityModal(); modal.classList.add('show'); };
+      q('#openModal2').onclick = () => { prepareOpportunityModal(); modal.classList.add('show'); };
       q('#closeModal').onclick = () => modal.classList.remove('show');
       modal.onclick = (event) => { if (event.target === modal) modal.classList.remove('show'); };
       const showToast = (message) => {
@@ -299,6 +307,49 @@
         card.innerHTML = '<div class="card-head"><h2 class="card-title">AI Insight and Sales Proposal</h2><span class="badge blue">Dify Control Center</span></div><p style="color:var(--muted);font-size:13px"></p><div id="aiResult" style="white-space:pre-wrap;line-height:1.75"></div>';
         card.querySelector('p').textContent = projectName + ' - generated now';
         q('#aiResult').textContent = answer;
+      };
+      const caseModal = document.createElement('div');
+      caseModal.className = 'modal';
+      caseModal.innerHTML = '<div class="modal-box"><h2 id="caseModalTitle">新建案例卡</h2><p id="caseModalHint">仅录入脱敏后的可复用结论；真实后端版会保存并支持审核。</p><form id="caseForm"><div class="form-grid"><div class="field full"><label>案例标题</label><input id="caseTitle" required placeholder="例如：新市场 App 的首轮验证" /></div><div class="field full"><label>脱敏结论</label><textarea id="caseConclusion" required placeholder="写入可复用的判断规则、前置 Gate 或测试方法…"></textarea></div></div><div class="modal-actions"><button type="button" class="secondary" id="closeCaseModal">取消</button><button class="primary" id="caseSubmit">保存案例卡</button></div></form></div>';
+      document.body.appendChild(caseModal);
+      const openCaseModal = () => { q('#caseForm').style.display = 'block'; q('#caseForm').reset(); q('#caseModalTitle').textContent = '新建案例卡'; q('#caseModalHint').textContent = '仅录入脱敏后的可复用结论；真实后端版会保存并支持审核。'; caseModal.classList.add('show'); };
+      const openCaseDetail = (title, conclusion) => {
+        q('#caseModalTitle').textContent = title;
+        q('#caseModalHint').textContent = conclusion || '这是脱敏案例的预览内容。下一阶段接入数据库后，会展示完整审核结论与来源。';
+        q('#caseForm').style.display = 'none';
+        caseModal.classList.add('show');
+      };
+      const closeCaseModal = () => { q('#caseForm').style.display = 'block'; caseModal.classList.remove('show'); };
+      q('#closeCaseModal').onclick = closeCaseModal;
+      caseModal.onclick = (event) => { if (event.target === caseModal) closeCaseModal(); };
+      const bindRow = (row) => {
+        if (row.dataset.bound) return;
+        row.dataset.bound = 'true'; row.classList.add('clickable'); row.tabIndex = 0;
+        const open = () => {
+          const title = row.querySelector('.project-name > div')?.childNodes[0]?.textContent.trim() || '案例详情';
+          const detail = row.querySelector('.project-sub')?.textContent.trim() || '';
+          const parentPage = row.closest('.page-view')?.id;
+          if (parentPage === 'knowledgePage') openCaseDetail(title, detail);
+          else if (parentPage === 'dashboard' && title.includes('Healthy Motion')) showProject();
+          else showToast('已打开“' + title + '”的预览，真实详情将在下一轮接入数据后展示。');
+        };
+        row.addEventListener('click', (event) => { if (!event.target.closest('button')) open(); });
+        row.addEventListener('keydown', (event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); open(); } });
+      };
+      document.querySelectorAll('.project-row').forEach(bindRow);
+      const newCaseButton = Array.from(document.querySelectorAll('button')).find((button) => button.textContent.includes('新建案例卡'));
+      newCaseButton.onclick = openCaseModal;
+      q('#caseForm').onsubmit = (event) => {
+        event.preventDefault();
+        const title = q('#caseTitle').value.trim();
+        const conclusion = q('#caseConclusion').value.trim();
+        const list = q('#knowledgePage .project-list');
+        const row = document.createElement('div');
+        row.className = 'project-row';
+        row.innerHTML = '<div class="project-name"><span class="logo mint">+</span><div></div></div><span class="badge yellow">待审核</span><span class="money">新案例</span><span class="project-sub"></span><button class="more" aria-label="更多操作">⋯</button>';
+        row.querySelector('.project-name > div').textContent = title;
+        row.querySelector('.project-sub').textContent = conclusion;
+        list.prepend(row); bindRow(row); closeCaseModal(); showToast('案例卡已创建（当前为本地预览，尚未入库）。');
       };
       q('#campaignForm').onsubmit = async (event) => {
         event.preventDefault();
