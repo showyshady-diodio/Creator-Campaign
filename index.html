@@ -295,6 +295,20 @@
         toast.classList.add('show');
         setTimeout(() => toast.classList.remove('show'), 3200);
       };
+      const generationPage = document.createElement('section');
+      generationPage.className = 'page-view';
+      generationPage.id = 'generationPage';
+      generationPage.innerHTML = '<div class="topbar"><div class="crumb"><strong>生成任务</strong> / AI 工作队列</div></div><h1 class="page-title">生成任务</h1><p class="subtitle">提交后可离开页面，任务会在后台完成；这里统一查看进度、结果与失败重试。</p>';
+      q('main').appendChild(generationPage);
+      pageIds.push('generationPage');
+      const taskNavButton = document.createElement('button');
+      taskNavButton.innerHTML = '<span class="icon">◌</span>生成任务';
+      taskNavButton.onclick = () => {
+        document.querySelectorAll('.nav button').forEach((item) => item.classList.remove('active'));
+        taskNavButton.classList.add('active');
+        go('generationPage');
+      };
+      document.querySelectorAll('.nav')[1].appendChild(taskNavButton);
       const showAiResult = (answer, projectName) => {
         let card = q('#aiResultCard');
         if (!card) {
@@ -351,6 +365,82 @@
         row.querySelector('.project-sub').textContent = conclusion;
         list.prepend(row); bindRow(row); closeCaseModal(); showToast('案例卡已创建（当前为本地预览，尚未入库）。');
       };
+      const taskPanel = document.createElement('section');
+      taskPanel.className = 'card';
+      taskPanel.id = 'generationTasks';
+      taskPanel.style.marginTop = '24px';
+      taskPanel.innerHTML = '<div class="card-head"><div><h2 class="card-title">生成任务</h2><p style="margin:5px 0 0;color:var(--muted);font-size:12px">提交后后台生成，可离开页面，稍后回来查看结果。</p></div><button class="text-link" id="refreshTasks">刷新</button></div><div class="project-list" id="taskList"><p style="padding:14px;color:var(--muted)">正在读取生成记录…</p></div>';
+      q('#generationPage').appendChild(taskPanel);
+      const taskDetailPanel = document.createElement('section');
+      taskDetailPanel.className = 'card document';
+      taskDetailPanel.id = 'taskDetailPanel';
+      taskDetailPanel.style.cssText = 'display:none;margin-top:20px';
+      q('#generationPage').appendChild(taskDetailPanel);
+      const statusInfo = {
+        queued: ['排队中', 'yellow'],
+        running: ['生成中', 'purple'],
+        succeeded: ['已完成', 'green'],
+        failed: ['生成失败', 'red'],
+      };
+      const setTaskDetail = (task) => {
+        taskDetailPanel.style.display = 'block';
+        taskDetailPanel.innerHTML = '<div class="card-head"><div><h2 class="card-title"></h2><p style="margin:5px 0 0;color:var(--muted);font-size:12px"></p></div><button class="text-link" id="closeTaskDetail">收起</button></div><div id="taskAnswer" style="white-space:pre-wrap;line-height:1.8"></div>';
+        taskDetailPanel.querySelector('h2').textContent = task.title;
+        taskDetailPanel.querySelector('p').textContent = (statusInfo[task.status] || ['未知状态'])[0] + ' · ' + (task.completed_at || task.created_at || '');
+        taskDetailPanel.querySelector('#taskAnswer').textContent = task.answer || task.error_message || '任务仍在处理中，请稍后刷新。';
+        q('#closeTaskDetail').onclick = () => { taskDetailPanel.style.display = 'none'; };
+        taskDetailPanel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      };
+      const openTask = async (id) => {
+        try {
+          const response = await fetch(WORKER_API_URL + '/generations/' + encodeURIComponent(id));
+          const data = await response.json();
+          if (!response.ok) throw new Error(data.error || '无法读取任务详情');
+          setTaskDetail(data.task);
+        } catch (error) { showToast('读取任务失败：' + error.message); }
+      };
+      const retryTask = async (id) => {
+        try {
+          const response = await fetch(WORKER_API_URL + '/generations/' + encodeURIComponent(id) + '/retry', { method: 'POST' });
+          const data = await response.json();
+          if (!response.ok) throw new Error(data.error || '重试失败');
+          showToast('已重新加入生成队列。'); refreshTasks();
+        } catch (error) { showToast('重试失败：' + error.message); }
+      };
+      const renderTasks = (tasks) => {
+        const list = q('#taskList');
+        list.innerHTML = '';
+        if (!tasks.length) { list.innerHTML = '<p style="padding:14px;color:var(--muted)">暂无生成任务。创建客户机会后会显示在这里。</p>'; return; }
+        tasks.forEach((task) => {
+          const row = document.createElement('div');
+          row.className = 'project-row clickable'; row.tabIndex = 0;
+          const [label, color] = statusInfo[task.status] || ['未知状态', 'yellow'];
+          row.innerHTML = '<div class="project-name"><span class="logo blue">✦</span><div></div></div><span class="badge"></span><span class="money"></span><span class="project-sub"></span><button class="text-link" type="button"></button>';
+          row.querySelector('.project-name > div').textContent = task.title;
+          row.querySelector('.badge').classList.add(color); row.querySelector('.badge').textContent = label;
+          row.querySelector('.money').textContent = task.market || '未设置市场';
+          row.querySelector('.project-sub').textContent = task.completed_at || task.started_at || task.created_at || '';
+          const action = row.querySelector('button');
+          if (task.status === 'failed') { action.textContent = '重试'; action.onclick = (event) => { event.stopPropagation(); retryTask(task.id); }; }
+          else { action.textContent = task.status === 'succeeded' ? '查看结果' : '查看状态'; action.onclick = (event) => { event.stopPropagation(); openTask(task.id); }; }
+          row.onclick = () => openTask(task.id);
+          row.onkeydown = (event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); openTask(task.id); } };
+          list.appendChild(row);
+        });
+      };
+      const refreshTasks = async () => {
+        try {
+          const response = await fetch(WORKER_API_URL + '/generations?limit=20');
+          const data = await response.json();
+          if (!response.ok) throw new Error(data.error || '无法读取任务');
+          renderTasks(data.tasks || []);
+        } catch (error) {
+          q('#taskList').innerHTML = '<p style="padding:14px;color:var(--muted)">生成中心连接中。部署异步 Worker 后会自动显示任务。</p>';
+        }
+      };
+      q('#refreshTasks').onclick = refreshTasks;
+      refreshTasks();
+      setInterval(refreshTasks, 5000);
       q('#campaignForm').onsubmit = async (event) => {
         event.preventDefault();
         const form = event.currentTarget;
@@ -360,27 +450,28 @@
         const budget = inputs[2].value.trim() || 'Not provided';
         const stage = form.querySelector('select').value;
         const originalBrief = form.querySelector('textarea').value.trim();
-        const brief = `Project: ${projectName}\nMarket: ${market}\nBudget: ${budget} USD\nStage: ${stage}\nOriginal client brief: ${originalBrief || 'Not provided. Identify the key information gaps first.'}`;
+        const brief = originalBrief || '未补充，请先识别关键的信息缺口。';
         const submit = form.querySelector('button.primary');
         submit.disabled = true;
-        submit.textContent = 'Generating...';
+        submit.textContent = '正在创建任务…';
         try {
-          const response = await fetch(WORKER_API_URL, {
+          const response = await fetch(WORKER_API_URL + '/generations', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ brief, user: 'web-demo-user' })
+            body: JSON.stringify({ title: projectName, market, budget, stage, brief })
           });
           const data = await response.json();
-          if (!response.ok) throw new Error(data.error || 'Dify service is unavailable');
+          if (!response.ok) throw new Error(data.error || '无法创建生成任务');
           modal.classList.remove('show');
-          showAiResult(data.answer || 'No valid answer returned.', projectName);
-          showProject();
-          showToast('AI result created.');
+          form.reset();
+          showDashboard();
+          await refreshTasks();
+          showToast('任务已加入队列，可稍后回来查看。');
         } catch (error) {
-          showToast('Generation failed: ' + error.message);
+          showToast('创建任务失败：' + error.message);
         } finally {
           submit.disabled = false;
-          submit.textContent = 'Create and analyze';
+          submit.textContent = '创建机会并生成方案';
         }
       };
     </script>
