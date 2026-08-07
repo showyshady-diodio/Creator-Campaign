@@ -95,6 +95,7 @@
       .tab-panel { display:none; } .tab-panel.show { display:block; }
       .two-col { display:grid; grid-template-columns: 1.35fr .8fr; gap:18px; }
       .document { padding: 22px; } .document h2 { margin:0 0 13px; font-size:17px; } .document h3 { margin:22px 0 8px; font-size:14px; } .document p, .document li { color:#4a5366; } .document ul { padding-left: 18px; }
+      .markdown { color:#4a5366; line-height:1.8; } .markdown > :first-child { margin-top:0; } .markdown h1,.markdown h2,.markdown h3,.markdown h4 { color:var(--ink); line-height:1.35; } .markdown h1 { font-size:20px; margin:22px 0 10px; } .markdown h2 { font-size:17px; margin:20px 0 9px; } .markdown h3 { font-size:15px; margin:17px 0 8px; } .markdown h4 { font-size:14px; margin:14px 0 6px; } .markdown p { margin:8px 0; } .markdown ul,.markdown ol { margin:8px 0; padding-left:22px; } .markdown li { margin:4px 0; } .markdown strong { color:#273047; } .markdown code { padding:2px 5px; border-radius:5px; background:#f1f2f8; color:#4d4fc4; font:12px ui-monospace,SFMono-Regular,Consolas,monospace; } .markdown pre { overflow:auto; padding:12px; border-radius:9px; background:#171b2d; color:#e5e9ff; line-height:1.55; } .markdown pre code { padding:0; background:transparent; color:inherit; } .markdown-table-wrap { overflow-x:auto; margin:12px 0; border:1px solid #e7e9f0; border-radius:9px; } .markdown table { width:100%; min-width:520px; border-collapse:collapse; font-size:13px; } .markdown th,.markdown td { padding:9px 11px; text-align:left; vertical-align:top; border-bottom:1px solid #e7e9f0; } .markdown th { color:#303952; background:#f7f8fc; font-weight:700; } .markdown tr:last-child td { border-bottom:0; }
       .info-list { padding: 5px 19px 17px; } .info-row { display:flex; justify-content:space-between; gap:12px; padding:11px 0; border-bottom:1px solid #f0f1f4; color:var(--muted); } .info-row b { color:var(--ink); text-align:right; }
       .modal { position:fixed; inset:0; display:none; align-items:center; justify-content:center; padding:20px; background:#10142b77; backdrop-filter: blur(3px); z-index:9; }
       .modal.show { display:flex; } .modal-box { width:min(540px,100%); padding:23px; background:white; border-radius:17px; box-shadow:0 20px 60px #10142b55; }
@@ -249,6 +250,54 @@
       const q = (selector) => document.querySelector(selector);
       const WORKER_API_URL = 'https://fcampaign-ai-proxy.beijingdiodio.workers.dev';
       const pageIds = ['dashboard', 'projectPage', 'opportunitiesPage', 'creatorsPage', 'analyticsPage', 'knowledgePage'];
+      const escapeHtml = (value = '') => String(value).replace(/[&<>"]/g, char => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;' })[char]);
+      const removeThinking = (value = '') => String(value)
+        .replace(/<think>[\s\S]*?<\/think>\s*/gi, '')
+        .replace(/<\/?think>/gi, '')
+        .trim();
+      const renderInline = (value = '') => escapeHtml(value)
+        .replace(/`([^`]+)`/g, '<code>$1</code>')
+        .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
+        .replace(/__([^_]+)__/g, '<strong>$1</strong>');
+      const isTableDivider = (line = '') => /^\s*\|?\s*:?-{3,}:?\s*(\|\s*:?-{3,}:?\s*)+\|?\s*$/.test(line);
+      const tableCells = (line = '') => line.trim().replace(/^\||\|$/g, '').split('|').map(cell => renderInline(cell.trim()));
+      const renderMarkdown = (source = '') => {
+        const lines = removeThinking(source).replace(/\r\n?/g, '\n').split('\n');
+        const html = [];
+        let index = 0;
+        const isBlockStart = (line, next) => /^#{1,4}\s+/.test(line) || /^\s*[-*+]\s+/.test(line) || /^\s*\d+\.\s+/.test(line) || line.trim().startsWith('```') || (line.includes('|') && isTableDivider(next || ''));
+        while (index < lines.length) {
+          const line = lines[index];
+          if (!line.trim()) { index++; continue; }
+          if (line.trim().startsWith('```')) {
+            const code = []; index++;
+            while (index < lines.length && !lines[index].trim().startsWith('```')) code.push(lines[index++]);
+            if (index < lines.length) index++;
+            html.push('<pre><code>' + escapeHtml(code.join('\n')) + '</code></pre>'); continue;
+          }
+          const heading = line.match(/^(#{1,4})\s+(.+)$/);
+          if (heading) { const level = heading[1].length; html.push('<h' + level + '>' + renderInline(heading[2]) + '</h' + level + '>'); index++; continue; }
+          if (line.includes('|') && isTableDivider(lines[index + 1] || '')) {
+            const header = tableCells(line); index += 2; const rows = [];
+            while (index < lines.length && lines[index].includes('|') && lines[index].trim()) rows.push(tableCells(lines[index++]));
+            const head = '<thead><tr>' + header.map(cell => '<th>' + cell + '</th>').join('') + '</tr></thead>';
+            const body = '<tbody>' + rows.map(row => '<tr>' + header.map((_, col) => '<td>' + (row[col] || '') + '</td>').join('') + '</tr>').join('') + '</tbody>';
+            html.push('<div class="markdown-table-wrap"><table>' + head + body + '</table></div>'); continue;
+          }
+          if (/^\s*[-*+]\s+/.test(line)) {
+            const items = []; while (index < lines.length && /^\s*[-*+]\s+/.test(lines[index])) items.push('<li>' + renderInline(lines[index++].replace(/^\s*[-*+]\s+/, '')) + '</li>');
+            html.push('<ul>' + items.join('') + '</ul>'); continue;
+          }
+          if (/^\s*\d+\.\s+/.test(line)) {
+            const items = []; while (index < lines.length && /^\s*\d+\.\s+/.test(lines[index])) items.push('<li>' + renderInline(lines[index++].replace(/^\s*\d+\.\s+/, '')) + '</li>');
+            html.push('<ol>' + items.join('') + '</ol>'); continue;
+          }
+          const paragraph = [line.trim()]; index++;
+          while (index < lines.length && lines[index].trim() && !isBlockStart(lines[index], lines[index + 1])) paragraph.push(lines[index++].trim());
+          html.push('<p>' + renderInline(paragraph.join('<br>')).replace(/&lt;br&gt;/g, '<br>') + '</p>');
+        }
+        return html.join('') || '<p>未收到可展示的内容。</p>';
+      };
       const go = (pageId) => {
         pageIds.forEach((id) => {
           const page = q('#' + id);
@@ -318,9 +367,9 @@
           card.style.marginTop = '20px';
           q('#overview').appendChild(card);
         }
-        card.innerHTML = '<div class="card-head"><h2 class="card-title">AI Insight and Sales Proposal</h2><span class="badge blue">Dify Control Center</span></div><p style="color:var(--muted);font-size:13px"></p><div id="aiResult" style="white-space:pre-wrap;line-height:1.75"></div>';
+        card.innerHTML = '<div class="card-head"><h2 class="card-title">AI Insight and Sales Proposal</h2><span class="badge blue">Dify Control Center</span></div><p style="color:var(--muted);font-size:13px"></p><div id="aiResult" class="markdown"></div>';
         card.querySelector('p').textContent = projectName + ' - generated now';
-        q('#aiResult').textContent = answer;
+        q('#aiResult').innerHTML = renderMarkdown(answer);
       };
       const caseModal = document.createElement('div');
       caseModal.className = 'modal';
@@ -384,10 +433,10 @@
       };
       const setTaskDetail = (task) => {
         taskDetailPanel.style.display = 'block';
-        taskDetailPanel.innerHTML = '<div class="card-head"><div><h2 class="card-title"></h2><p style="margin:5px 0 0;color:var(--muted);font-size:12px"></p></div><button class="text-link" id="closeTaskDetail">收起</button></div><div id="taskAnswer" style="white-space:pre-wrap;line-height:1.8"></div>';
+        taskDetailPanel.innerHTML = '<div class="card-head"><div><h2 class="card-title"></h2><p style="margin:5px 0 0;color:var(--muted);font-size:12px"></p></div><button class="text-link" id="closeTaskDetail">收起</button></div><div id="taskAnswer" class="markdown"></div>';
         taskDetailPanel.querySelector('h2').textContent = task.title;
         taskDetailPanel.querySelector('p').textContent = (statusInfo[task.status] || ['未知状态'])[0] + ' · ' + (task.completed_at || task.created_at || '');
-        taskDetailPanel.querySelector('#taskAnswer').textContent = task.answer || task.error_message || '任务仍在处理中，请稍后刷新。';
+        taskDetailPanel.querySelector('#taskAnswer').innerHTML = renderMarkdown(task.answer || task.error_message || '任务仍在处理中，请稍后刷新。');
         q('#closeTaskDetail').onclick = () => { taskDetailPanel.style.display = 'none'; };
         taskDetailPanel.scrollIntoView({ behavior: 'smooth', block: 'start' });
       };
