@@ -504,7 +504,7 @@
         submit.disabled = true;
         submit.textContent = '正在创建任务…';
         try {
-          const response = await fetch(WORKER_API_URL + '/generations', {
+          const response = await fetch(WORKER_API_URL + '/campaigns', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ title: projectName, market, budget, stage, brief })
@@ -515,7 +515,7 @@
           form.reset();
           showDashboard();
           await refreshTasks();
-          showToast('任务已加入队列，可稍后回来查看。');
+          showToast('客户机会已创建，方案正在生成。');
         } catch (error) {
           showToast('创建任务失败：' + error.message);
         } finally {
