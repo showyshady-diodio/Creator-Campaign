@@ -428,12 +428,18 @@
         failed: ['生成失败', 'red'],
       };
       const setTaskDetail = (task) => {
+        const taskActions = task.status === 'running' || task.status === 'queued'
+          ? '<div style="display:flex;gap:10px;flex-wrap:wrap;margin:16px 0"><button class="secondary" id="reconcileTask">从 Dify 补取结果</button><button class="secondary" id="markTaskFailed">标记任务失败</button></div>'
+          : (task.status === 'failed' ? '<div style="margin:16px 0"><button class="primary" id="retryTask">重新加入生成队列</button></div>' : '');
         taskDetailPanel.style.display = 'block';
-        taskDetailPanel.innerHTML = '<div class="card-head"><div><h2 class="card-title"></h2><p style="margin:5px 0 0;color:var(--muted);font-size:12px"></p></div><button class="text-link" id="closeTaskDetail">收起</button></div><div id="taskAnswer" class="markdown"></div>';
+        taskDetailPanel.innerHTML = '<div class="card-head"><div><h2 class="card-title"></h2><p style="margin:5px 0 0;color:var(--muted);font-size:12px"></p></div><button class="text-link" id="closeTaskDetail">收起</button></div>' + taskActions + '<div id="taskAnswer" class="markdown"></div>';
         taskDetailPanel.querySelector('h2').textContent = task.title;
         taskDetailPanel.querySelector('p').textContent = (statusInfo[task.status] || ['未知状态'])[0] + ' · ' + (task.completed_at || task.created_at || '');
         taskDetailPanel.querySelector('#taskAnswer').innerHTML = renderMarkdown(task.answer || task.error_message || '任务仍在处理中，请稍后刷新。');
         q('#closeTaskDetail').onclick = () => { taskDetailPanel.style.display = 'none'; };
+        const reconcile = q('#reconcileTask'); if (reconcile) reconcile.onclick = () => reconcileTask(task.id);
+        const fail = q('#markTaskFailed'); if (fail) fail.onclick = () => markTaskFailed(task.id);
+        const retry = q('#retryTask'); if (retry) retry.onclick = () => retryTask(task.id);
         taskDetailPanel.scrollIntoView({ behavior: 'smooth', block: 'start' });
       };
       const openTask = async (id) => {
@@ -451,6 +457,28 @@
           if (!response.ok) throw new Error(data.error || '重试失败');
           showToast('已重新加入生成队列。'); refreshTasks();
         } catch (error) { showToast('重试失败：' + error.message); }
+      };
+      const markTaskFailed = async (id) => {
+        const reason = window.prompt('可选：记录本次终止原因。该操作只终止 AI 任务，不会将客户机会标记为丢单。', '任务长时间未完成，人工终止后重试');
+        if (reason === null) return;
+        try {
+          const response = await fetch(WORKER_API_URL + '/generations/' + encodeURIComponent(id) + '/fail', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ reason }) });
+          const data = await response.json();
+          if (!response.ok) throw new Error(data.error || '标记失败');
+          showToast('已将 AI 任务标记为失败，可点击重试；客户机会状态未变为丢单。');
+          await refreshTasks();
+          if (document.getElementById('projectPage').classList.contains('active')) await openTaskInOpportunity(id);
+        } catch (error) { showToast('操作失败：' + error.message); }
+      };
+      const reconcileTask = async (id) => {
+        try {
+          const response = await fetch(WORKER_API_URL + '/generations/' + encodeURIComponent(id) + '/reconcile', { method: 'POST' });
+          const data = await response.json();
+          if (!response.ok) throw new Error(data.error || '无法从 Dify 补取结果');
+          showToast(data.recovered ? '已从 Dify 补取完成结果。' : '该任务已有完成结果。');
+          await refreshTasks();
+          if (document.getElementById('projectPage').classList.contains('active')) await openTaskInOpportunity(id);
+        } catch (error) { showToast('补取失败：' + error.message); }
       };
       const renderTasks = (tasks) => {
         const list = q('#taskList');
@@ -556,9 +584,15 @@
           const response = await fetch(WORKER_API_URL + '/generations/' + encodeURIComponent(id));
           const data = await response.json(); if (!response.ok) throw new Error(data.error || '无法读取生成记录');
           const panel = q('#opportunityTaskDetail');
+          const taskActions = data.task.status === 'running' || data.task.status === 'queued'
+            ? '<div style="display:flex;gap:10px;flex-wrap:wrap;margin:16px 0"><button class="secondary" id="opportunityReconcileTask">从 Dify 补取结果</button><button class="secondary" id="opportunityMarkTaskFailed">标记任务失败</button></div>'
+            : (data.task.status === 'failed' ? '<div style="margin:16px 0"><button class="primary" id="opportunityRetryTask">重新加入生成队列</button></div>' : '');
           panel.style.display = 'block';
-          panel.innerHTML = '<div class="card-head"><div><h2 class="card-title">' + escapeHtml(data.task.stage || '生成记录') + '</h2><p style="margin:5px 0 0;color:var(--muted);font-size:12px">' + escapeHtml((statusInfo[data.task.status] || ['未知'])[0] + ' · ' + (data.task.completed_at || data.task.created_at || '')) + '</p></div><button class="text-link" id="closeOpportunityTask">收起</button></div><div class="markdown">' + renderMarkdown(data.task.answer || data.task.error_message || '任务仍在处理中，请稍后刷新。') + '</div>';
+          panel.innerHTML = '<div class="card-head"><div><h2 class="card-title">' + escapeHtml(data.task.stage || '生成记录') + '</h2><p style="margin:5px 0 0;color:var(--muted);font-size:12px">' + escapeHtml((statusInfo[data.task.status] || ['未知'])[0] + ' · ' + (data.task.completed_at || data.task.created_at || '')) + '</p></div><button class="text-link" id="closeOpportunityTask">收起</button></div>' + taskActions + '<div class="markdown">' + renderMarkdown(data.task.answer || data.task.error_message || '任务仍在处理中，请稍后刷新。') + '</div>';
           q('#closeOpportunityTask').onclick = () => { panel.style.display = 'none'; };
+          const reconcile = q('#opportunityReconcileTask'); if (reconcile) reconcile.onclick = () => reconcileTask(data.task.id);
+          const fail = q('#opportunityMarkTaskFailed'); if (fail) fail.onclick = () => markTaskFailed(data.task.id);
+          const retry = q('#opportunityRetryTask'); if (retry) retry.onclick = () => retryTask(data.task.id);
           panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
         } catch (error) { showToast('读取生成记录失败：' + error.message); }
       };
