@@ -533,11 +533,12 @@
         closed: ['case_candidate'], case_candidate: ['closed'], lost: []
       };
       const workflowActions = {
-        new_brief: '生成 / 更新销售方案（AI）', delivery_gate: '生成交付 Gate 评估（AI）', execution_update: '录入执行事实并生成更新（AI）', case_draft: '生成案例沉淀草稿（AI）'
+        new_brief: '生成 / 更新销售方案（AI）', delivery_gate: '生成交付 Gate 评估（AI）', execution_update: '录入执行事实并生成更新（AI）', review_update: '录入复盘事实并生成复盘建议（AI）', case_draft: '生成案例沉淀草稿（AI）'
       };
       const toWorkflowStage = (lifecycle) => {
         if (lifecycle === 'delivery_gate') return 'delivery_gate';
-        if (lifecycle === 'executing' || lifecycle === 'review') return 'execution_update';
+        if (lifecycle === 'executing') return 'execution_update';
+        if (lifecycle === 'review') return 'review_update';
         if (lifecycle === 'case_candidate') return 'case_draft';
         return 'new_brief';
       };
@@ -598,7 +599,7 @@
       };
       const workflowModal = document.createElement('div');
       workflowModal.className = 'modal';
-      workflowModal.innerHTML = '<div class="modal-box"><h2 id="workflowModalTitle">AI 生成</h2><p id="workflowModalHint"></p><form id="workflowForm"><div class="form-grid"><div class="field full"><label>本阶段已确认事实</label><textarea id="workflowUpdate" placeholder="例如：本周投放数据、客户审批结论、异常、负责人和下一步动作。"></textarea></div></div><p style="color:var(--muted);font-size:12px">提交后只创建 AI 生成任务，不会变更项目业务状态。</p><div class="modal-actions"><button type="button" class="secondary" id="closeWorkflowModal">取消</button><button class="primary" id="workflowSubmit">提交给 AI 生成</button></div></form></div>';
+      workflowModal.innerHTML = '<div class="modal-box"><h2 id="workflowModalTitle">AI 生成</h2><p id="workflowModalHint"></p><form id="workflowForm"><div class="form-grid"><div class="field full"><label id="workflowUpdateLabel">本阶段已确认事实</label><textarea id="workflowUpdate" placeholder="例如：本周投放数据、客户审批结论、异常、负责人和下一步动作。"></textarea></div></div><p style="color:var(--muted);font-size:12px">提交后只创建 AI 生成任务，不会变更项目业务状态。</p><div class="modal-actions"><button type="button" class="secondary" id="closeWorkflowModal">取消</button><button class="primary" id="workflowSubmit">提交给 AI 生成</button></div></form></div>';
       document.body.appendChild(workflowModal);
       let pendingWorkflow = null;
       const requestStageGeneration = (campaign, workflowStage) => {
@@ -606,6 +607,10 @@
         const required = workflowStage !== 'new_brief';
         q('#workflowModalTitle').textContent = workflowActions[workflowStage] || 'AI 生成';
         q('#workflowModalHint').textContent = required ? '请录入本阶段已确认的事实。它会作为 AI 输入，但不会自动推进业务状态。' : '可补充新的客户事实后再生成；若不补充，AI 将基于当前 Brief 生成。';
+        q('#workflowUpdateLabel').textContent = workflowStage === 'review_update' ? '本轮复盘事实与决策依据' : '本阶段已确认事实';
+        q('#workflowUpdate').placeholder = workflowStage === 'review_update'
+          ? '例如：分渠道花费、转化成本、素材/达人表现、异常、已执行动作、是否扩量或暂停的依据。'
+          : '例如：本周投放数据、客户审批结论、异常、负责人和下一步动作。';
         q('#workflowUpdate').value = ''; q('#workflowUpdate').required = required;
         workflowModal.classList.add('show');
       };
