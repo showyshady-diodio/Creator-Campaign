@@ -399,13 +399,16 @@
       };
       const openCaseDetail = (item) => {
         pendingCaseCampaign = null; q('#caseForm').style.display = 'none'; q('#caseReviewSidebar').style.display = 'block'; q('#caseModalTitle').textContent = item.title;
-        q('#caseModalHint').textContent = (item.review_status === 'approved' ? '已审核通过；尚未自动同步到 Dify。' : item.review_status === 'rejected' ? '已退回；可在项目中重新整理后另存草稿。' : '待人工审核：确认已脱敏且结论可复用后再通过。');
+        const syncLabel = { not_synced: '尚未同步到 Dify', syncing: '正在提交到 Dify', submitted: '已提交 Dify 索引', completed: '已同步到 Dify', failed: 'Dify 同步失败，可重试' };
+        const syncStatus = item.dify_sync_status || 'not_synced';
+        q('#caseModalHint').textContent = (item.review_status === 'approved' ? '已审核通过；' + (syncLabel[syncStatus] || '尚未同步到 Dify') + '。' : item.review_status === 'rejected' ? '已退回；可在项目中重新整理后另存草稿。' : '待人工审核：确认已脱敏且结论可复用后再通过。');
         q('#caseDetail').innerHTML = renderMarkdown(item.summary || ''); q('#caseDetail').style.display = 'block';
-        q('#caseReviewStatus').textContent = item.review_status === 'approved' ? '该案例已审核通过。后续可在确认后同步至 Dify 知识库。' : item.review_status === 'rejected' ? '该案例已退回。请回到项目中补充或重新整理后，再保存新草稿。' : '审核前请确认：无客户实名、报价、联系人或敏感原文；且结论可被其他项目复用。';
-        const actions = q('#caseReviewActions'); actions.style.display = item.review_status === 'draft' ? 'flex' : 'none';
-        actions.innerHTML = item.review_status === 'draft' ? '<button class="secondary" id="rejectCase">退回</button><button class="primary" id="approveCase">审核通过</button>' : '';
+        q('#caseReviewStatus').textContent = item.review_status === 'approved' ? (syncStatus === 'failed' ? '上次同步失败：' + (item.dify_sync_error || '未知原因') : syncStatus === 'submitted' ? '已提交至 Dify，Dify 正在完成文档切片与索引。' : '该案例已审核通过。确认后可手动提交到 Dify 知识库。') : item.review_status === 'rejected' ? '该案例已退回。请回到项目中补充或重新整理后，再保存新草稿。' : '审核前请确认：无客户实名、报价、联系人或敏感原文；且结论可被其他项目复用。';
+        const actions = q('#caseReviewActions'); actions.style.display = item.review_status === 'draft' || (item.review_status === 'approved' && !['syncing', 'submitted', 'completed'].includes(syncStatus)) ? 'flex' : 'none';
+        actions.innerHTML = item.review_status === 'draft' ? '<button class="secondary" id="rejectCase">退回</button><button class="primary" id="approveCase">审核通过</button>' : (item.review_status === 'approved' ? '<button class="primary" id="syncCase">' + (syncStatus === 'failed' ? '重试同步至 Dify' : '同步至 Dify 知识库') + '</button>' : '');
         const approve = q('#approveCase'); if (approve) approve.onclick = () => reviewCase(item.id, 'approved');
         const reject = q('#rejectCase'); if (reject) reject.onclick = () => reviewCase(item.id, 'rejected');
+        const sync = q('#syncCase'); if (sync) sync.onclick = () => syncCase(item.id);
         caseModal.classList.add('show');
       };
       const closeCaseModal = () => { q('#caseForm').style.display = 'block'; q('#caseDetail').style.display = 'none'; q('#caseReviewSidebar').style.display = 'none'; q('#caseReviewActions').style.display = 'none'; caseModal.classList.remove('show'); pendingCaseCampaign = null; };
@@ -692,6 +695,16 @@
           showToast(reviewStatus === 'approved' ? '案例已审核通过，暂未自动同步到 Dify。' : '案例已退回。');
         } catch (error) { showToast('案例审核失败：' + error.message); }
       };
+      const syncCase = async (id) => {
+        try {
+          const response = await fetch(WORKER_API_URL + '/cases/' + encodeURIComponent(id) + '/sync', { method: 'POST' });
+          const data = await response.json(); if (!response.ok) throw new Error(data.detail || data.error || '同步失败');
+          closeCaseModal();
+          await refreshCases();
+          await refreshCurrentOpportunity();
+          showToast('已提交至 Dify 知识库索引，可稍后在 Dify 文档列表确认处理状态。');
+        } catch (error) { showToast('同步到 Dify 失败：' + error.message); }
+      };
       const editRecordModal = document.createElement('div');
       editRecordModal.className = 'modal';
       editRecordModal.innerHTML = '<div class="modal-box"><h2>编辑公司与客户机会</h2><p>公司信息会同步到该公司的其他机会；机会信息只影响当前项目。</p><form id="editRecordForm"><div class="form-grid"><div class="field"><label>公司名称</label><input id="editClientName" required /></div><div class="field"><label>所属行业</label><input id="editClientIndustry" /></div><div class="field full"><label>客户背景</label><textarea id="editClientProfile"></textarea></div><div class="field"><label>客户机会名称</label><input id="editOpportunityName" required /></div><div class="field"><label>目标市场</label><input id="editOpportunityMarket" required /></div><div class="field"><label>预算（美元）</label><input id="editOpportunityBudget" type="number" /></div></div><div class="modal-actions"><button type="button" class="secondary" id="closeEditRecordModal">取消</button><button class="primary" id="saveEditRecord">保存全部修改</button></div></form></div>';
@@ -793,7 +806,8 @@
             row.innerHTML = '<div class="project-name"><span class="logo mint">▤</span><div></div></div><span class="badge yellow">待审核</span><span class="money"></span><span class="project-sub"></span><button class="text-link" type="button">查看</button>';
             row.querySelector('.project-name > div').textContent = item.title;
             row.querySelector('.money').textContent = item.client_name || '未归档客户';
-            row.querySelector('.project-sub').textContent = item.created_at || '';
+            const syncText = item.review_status === 'approved' ? ({ syncing: 'Dify 提交中', submitted: 'Dify 索引中', completed: '已同步 Dify', failed: 'Dify 同步失败', not_synced: '未同步 Dify' }[item.dify_sync_status || 'not_synced']) : '';
+            row.querySelector('.project-sub').textContent = [item.created_at || '', syncText].filter(Boolean).join(' · ');
             const statusText = item.review_status === 'approved' ? '已审核' : item.review_status === 'rejected' ? '已退回' : '待审核';
             const statusColor = item.review_status === 'approved' ? 'green' : item.review_status === 'rejected' ? 'red' : 'yellow';
             row.querySelector('.badge').className = 'badge ' + statusColor; row.querySelector('.badge').textContent = statusText;
