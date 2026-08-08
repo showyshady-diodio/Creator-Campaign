@@ -505,11 +505,11 @@
       const allowedTransitions = {
         new_lead: ['demand_review', 'proposal_ready', 'lost'], demand_review: ['proposal_ready', 'lost'],
         proposal_ready: ['awaiting_client', 'delivery_gate', 'lost'], awaiting_client: ['delivery_gate', 'lost'],
-        delivery_gate: ['executing', 'lost'], executing: ['review', 'closed'], review: ['executing', 'closed'],
+        delivery_gate: ['executing', 'lost'], executing: ['review', 'closed'], review: ['closed'],
         closed: ['case_candidate'], case_candidate: ['closed'], lost: []
       };
       const workflowActions = {
-        new_brief: '生成 / 更新销售方案', delivery_gate: '生成交付 Gate 评估', execution_update: '生成执行进度更新', case_draft: '生成案例沉淀草稿'
+        new_brief: '生成 / 更新销售方案（AI）', delivery_gate: '生成交付 Gate 评估（AI）', execution_update: '录入执行事实并生成更新（AI）', case_draft: '生成案例沉淀草稿（AI）'
       };
       const toWorkflowStage = (lifecycle) => {
         if (lifecycle === 'delivery_gate') return 'delivery_gate';
@@ -524,18 +524,20 @@
         const taskRows = tasks.length ? tasks.map((task) => '<div class="project-row clickable task-open" data-task-id="' + task.id + '"><div class="project-name"><span class="logo blue">✦</span><div>' + escapeHtml(task.stage || task.workflow_stage) + '<div class="project-sub">' + escapeHtml(task.created_at || '') + '</div></div></div><span class="badge ' + ((statusInfo[task.status] || ['', 'yellow'])[1]) + '">' + (statusInfo[task.status] || ['未知', 'yellow'])[0] + '</span><span class="project-sub">' + escapeHtml(task.completed_at || task.started_at || '') + '</span></div>').join('') : '<p style="color:var(--muted)">暂无生成记录。</p>';
         const historyRows = history.length ? history.map((item) => '<div class="info-row"><span>' + escapeHtml((lifecycleLabels[item.from_stage] || '创建') + ' → ' + (lifecycleLabels[item.to_stage] || item.to_stage)) + '</span><b>' + escapeHtml(item.note || item.created_at) + '</b></div>').join('') : '<p style="color:var(--muted)">暂无状态流转记录。</p>';
         q('#projectPage').innerHTML = '<button class="back" id="backDashboard">← 返回客户机会</button>' +
-          '<div class="project-hero"><div><span class="badge purple">' + escapeHtml(lifecycleLabels[campaign.lifecycle_stage] || campaign.lifecycle_stage) + '</span><h1>' + escapeHtml(campaign.title) + '</h1><p>' + escapeHtml(campaign.client_name || '未归档客户') + ' · ' + escapeHtml(campaign.client_industry || '行业待补充') + ' · ' + escapeHtml(campaign.market) + '</p></div><div style="text-align:right"><small style="color:#c7c8e5">预算</small><div style="font-size:25px;font-weight:750">' + (campaign.budget_usd ? '$' + escapeHtml(campaign.budget_usd) : '待确认') + '</div><small style="color:#c7c8e5">下一步：' + escapeHtml(campaign.next_action || '待人工确认') + '</small></div></div>' +
-          '<div class="two-col"><section class="card document"><div class="card-head"><h2 class="card-title">客户与机会信息</h2><button class="primary" id="generateStage">' + workflowActions[workflowStage] + '</button></div><p><b>客户背景：</b>' + escapeHtml(campaign.client_profile || '未补充') + '</p><p><b>原始 Brief：</b></p><div class="markdown">' + renderMarkdown(campaign.brief || '') + '</div><h3 style="margin-top:22px">业务阶段（人工确认）</h3><p style="color:var(--muted);font-size:13px">AI 只能生成建议，状态必须由项目负责人手动推进。</p><div style="display:flex;gap:10px;flex-wrap:wrap">' + (transitions || '<span style="color:var(--muted)">当前状态暂无可用流转。</span>') + '</div></section>' +
+          '<div class="project-hero"><div><span class="badge purple">' + escapeHtml(lifecycleLabels[campaign.lifecycle_stage] || campaign.lifecycle_stage) + '</span><h1>' + escapeHtml(campaign.client_name || '未归档客户') + '</h1><p><b>客户机会：</b>' + escapeHtml(campaign.title) + ' · ' + escapeHtml(campaign.client_industry || '行业待补充') + ' · ' + escapeHtml(campaign.market) + '</p></div><div style="text-align:right"><small style="color:#c7c8e5">预算</small><div style="font-size:25px;font-weight:750">' + (campaign.budget_usd ? '$' + escapeHtml(campaign.budget_usd) : '待确认') + '</div><small style="color:#c7c8e5">下一步：' + escapeHtml(campaign.next_action || '待人工确认') + '</small></div></div>' +
+          '<div class="two-col"><section class="card document"><div class="card-head"><h2 class="card-title">客户与机会信息</h2><div style="display:flex;gap:10px;flex-wrap:wrap"><button class="secondary" id="editClient">编辑公司</button><button class="secondary" id="editOpportunity">编辑机会</button><button class="primary" id="generateStage">' + workflowActions[workflowStage] + '</button></div></div><p><b>客户背景：</b>' + escapeHtml(campaign.client_profile || '未补充') + '</p><p><b>原始 Brief：</b></p><div class="markdown">' + renderMarkdown(campaign.brief || '') + '</div><h3 style="margin-top:22px">业务阶段（人工确认）</h3><p style="color:var(--muted);font-size:13px">下方按钮只变更业务状态，不调用 AI；AI 生成需点击上方带“（AI）”的按钮并提交事实材料。</p><div style="display:flex;gap:10px;flex-wrap:wrap">' + (transitions || '<span style="color:var(--muted)">当前状态暂无可用流转。</span>') + '</div></section>' +
           '<section class="card"><div class="card-head"><h2 class="card-title">状态时间线</h2></div><div class="info-list">' + historyRows + '</div></section></div>' +
-          '<section class="card" style="margin-top:20px"><div class="card-head"><h2 class="card-title">本机会生成记录</h2><button class="text-link" id="goGenerationList">查看全部生成任务 →</button></div><div class="project-list">' + taskRows + '</div></section>' +
+          '<section class="card" style="margin-top:20px"><div class="card-head"><h2 class="card-title">本机会生成记录</h2><button class="text-link" id="goGenerationList">查看全部生成任务 →</button></div><div class="project-list">' + taskRows + '</div></section><section class="card document" id="opportunityTaskDetail" style="display:none;margin-top:20px"></section>' +
           (campaign.lifecycle_stage === 'case_candidate' ? '<section class="card document" style="margin-top:20px"><div class="card-head"><h2 class="card-title">案例沉淀</h2><button class="primary" id="saveCase">保存脱敏案例草稿</button></div><p>仅保存你人工确认、已脱敏的总结；保存后仍是“待审核”，不会自动同步到 Dify 知识库。</p></section>' : '');
         q('#backDashboard').onclick = () => go('opportunitiesPage');
         q('#goGenerationList').onclick = () => go('generationPage');
         q('#generateStage').onclick = () => requestStageGeneration(campaign, workflowStage);
+        q('#editClient').onclick = () => editClient(campaign);
+        q('#editOpportunity').onclick = () => editOpportunity(campaign);
         const saveCase = q('#saveCase');
         if (saveCase) saveCase.onclick = () => saveCampaignCase(campaign);
         document.querySelectorAll('.stage-transition').forEach((button) => { button.onclick = () => transitionOpportunity(campaign.id, button.dataset.stage); });
-        document.querySelectorAll('.task-open').forEach((row) => { row.onclick = () => { go('generationPage'); openTask(row.dataset.taskId); }; });
+        document.querySelectorAll('.task-open').forEach((row) => { row.onclick = () => openTaskInOpportunity(row.dataset.taskId); });
       };
       const openCampaign = async (campaign) => {
         try {
@@ -554,17 +556,46 @@
           await refreshCampaigns(); await openCampaign(data.campaign); showToast('业务状态已手动更新。');
         } catch (error) { showToast('状态更新失败：' + error.message); }
       };
-      const requestStageGeneration = async (campaign, workflowStage) => {
-        let update = '';
-        if (workflowStage !== 'new_brief') {
-          update = window.prompt('粘贴本阶段最新的已确认事实（数据、客户回复、执行进度等）。这会作为本次生成的输入。', '');
-          if (update === null || !update.trim()) return;
-        }
+      const openTaskInOpportunity = async (id) => {
+        try {
+          const response = await fetch(WORKER_API_URL + '/generations/' + encodeURIComponent(id));
+          const data = await response.json(); if (!response.ok) throw new Error(data.error || '无法读取生成记录');
+          const panel = q('#opportunityTaskDetail');
+          panel.style.display = 'block';
+          panel.innerHTML = '<div class="card-head"><div><h2 class="card-title">' + escapeHtml(data.task.stage || '生成记录') + '</h2><p style="margin:5px 0 0;color:var(--muted);font-size:12px">' + escapeHtml((statusInfo[data.task.status] || ['未知'])[0] + ' · ' + (data.task.completed_at || data.task.created_at || '')) + '</p></div><button class="text-link" id="closeOpportunityTask">收起</button></div><div class="markdown">' + renderMarkdown(data.task.answer || data.task.error_message || '任务仍在处理中，请稍后刷新。') + '</div>';
+          q('#closeOpportunityTask').onclick = () => { panel.style.display = 'none'; };
+          panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        } catch (error) { showToast('读取生成记录失败：' + error.message); }
+      };
+      const workflowModal = document.createElement('div');
+      workflowModal.className = 'modal';
+      workflowModal.innerHTML = '<div class="modal-box"><h2 id="workflowModalTitle">AI 生成</h2><p id="workflowModalHint"></p><form id="workflowForm"><div class="form-grid"><div class="field full"><label>本阶段已确认事实</label><textarea id="workflowUpdate" placeholder="例如：本周投放数据、客户审批结论、异常、负责人和下一步动作。"></textarea></div></div><p style="color:var(--muted);font-size:12px">提交后只创建 AI 生成任务，不会变更项目业务状态。</p><div class="modal-actions"><button type="button" class="secondary" id="closeWorkflowModal">取消</button><button class="primary" id="workflowSubmit">提交给 AI 生成</button></div></form></div>';
+      document.body.appendChild(workflowModal);
+      let pendingWorkflow = null;
+      const requestStageGeneration = (campaign, workflowStage) => {
+        pendingWorkflow = { campaign, workflowStage };
+        const required = workflowStage !== 'new_brief';
+        q('#workflowModalTitle').textContent = workflowActions[workflowStage] || 'AI 生成';
+        q('#workflowModalHint').textContent = required ? '请录入本阶段已确认的事实。它会作为 AI 输入，但不会自动推进业务状态。' : '可补充新的客户事实后再生成；若不补充，AI 将基于当前 Brief 生成。';
+        q('#workflowUpdate').value = ''; q('#workflowUpdate').required = required;
+        workflowModal.classList.add('show');
+      };
+      q('#closeWorkflowModal').onclick = () => { workflowModal.classList.remove('show'); pendingWorkflow = null; };
+      workflowModal.onclick = (event) => { if (event.target === workflowModal) { workflowModal.classList.remove('show'); pendingWorkflow = null; } };
+      q('#workflowForm').onsubmit = async (event) => {
+        event.preventDefault();
+        if (!pendingWorkflow) return;
+        const { campaign, workflowStage } = pendingWorkflow;
+        const update = q('#workflowUpdate').value.trim();
+        const submit = q('#workflowSubmit'); submit.disabled = true; submit.textContent = '正在提交…';
         try {
           const response = await fetch(WORKER_API_URL + '/campaigns/' + encodeURIComponent(campaign.id) + '/generations', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ workflow_stage: workflowStage, update }) });
           const data = await response.json(); if (!response.ok) throw new Error(data.error || '创建生成任务失败');
-          await refreshTasks(); await refreshCampaigns(); showToast('生成任务已提交，可在“生成任务”中查看。'); go('generationPage'); openTask(data.task.id);
+          workflowModal.classList.remove('show'); pendingWorkflow = null;
+          await refreshTasks(); await refreshCampaigns(); await openCampaign(data.campaign);
+          showToast('AI 生成任务已提交；完成后可直接在本机会详情页查看。');
         } catch (error) { showToast('生成失败：' + error.message); }
+        finally { submit.disabled = false; submit.textContent = '提交给 AI 生成'; }
       };
       const saveCampaignCase = async (campaign) => {
         const title = window.prompt('案例标题（脱敏后）', campaign.title + '：项目复盘');
@@ -577,14 +608,35 @@
           showToast('已保存为待审核案例草稿。'); refreshCases();
         } catch (error) { showToast('保存案例失败：' + error.message); }
       };
+      const editClient = async (campaign) => {
+        if (!campaign.client_id) { showToast('这是历史未归档记录，请先补录客户。'); return; }
+        const name = window.prompt('公司名称', campaign.client_name || ''); if (name === null || !name.trim()) return;
+        const industry = window.prompt('所属行业（可留空）', campaign.client_industry || ''); if (industry === null) return;
+        const profile = window.prompt('客户背景（可留空）', campaign.client_profile || ''); if (profile === null) return;
+        try {
+          const response = await fetch(WORKER_API_URL + '/clients/' + encodeURIComponent(campaign.client_id), { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name, industry, profile }) });
+          const data = await response.json(); if (!response.ok) throw new Error(data.error || '编辑公司失败');
+          await refreshClientOptions(); await refreshCampaigns(); await openCampaign(campaign); showToast('公司信息已更新，其他关联机会会同步显示。');
+        } catch (error) { showToast('编辑公司失败：' + error.message); }
+      };
+      const editOpportunity = async (campaign) => {
+        const title = window.prompt('客户机会名称', campaign.title || ''); if (title === null || !title.trim()) return;
+        const market = window.prompt('目标市场', campaign.market || ''); if (market === null || !market.trim()) return;
+        const budget = window.prompt('预算（美元，可留空）', campaign.budget_usd || ''); if (budget === null) return;
+        try {
+          const response = await fetch(WORKER_API_URL + '/campaigns/' + encodeURIComponent(campaign.id), { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ title, market, budget }) });
+          const data = await response.json(); if (!response.ok) throw new Error(data.error || '编辑机会失败');
+          await refreshCampaigns(); await openCampaign(data.campaign); showToast('客户机会已更新。');
+        } catch (error) { showToast('编辑机会失败：' + error.message); }
+      };
       const createCampaignRow = (campaign) => {
         const row = document.createElement('div');
         row.className = 'project-row clickable'; row.tabIndex = 0;
         const [label, color] = campaignStatusInfo[campaign.status] || ['待确认', 'yellow'];
         row.innerHTML = '<div class="project-name"><span class="logo mint">✦</span><div></div></div><span class="badge"></span><span class="money"></span><span class="project-sub"></span><button class="text-link" type="button">查看</button>';
-        row.querySelector('.project-name > div').textContent = campaign.title;
+        row.querySelector('.project-name > div').textContent = campaign.client_name || '未归档客户';
         const sub = row.querySelector('.project-sub');
-        sub.textContent = [campaign.market, campaign.stage || '新客户 Brief', campaign.updated_at || campaign.created_at || ''].filter(Boolean).join(' · ');
+        sub.textContent = ['机会：' + (campaign.title || '未命名'), campaign.market, campaign.stage || '新客户 Brief', campaign.updated_at || campaign.created_at || ''].filter(Boolean).join(' · ');
         row.querySelector('.badge').classList.add(color); row.querySelector('.badge').textContent = label;
         row.querySelector('.money').textContent = campaign.budget_usd ? '$' + campaign.budget_usd : '预算待确认';
         const open = () => openCampaign(campaign);
