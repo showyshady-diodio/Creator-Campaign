@@ -375,14 +375,15 @@
       caseModal.className = 'modal';
       caseModal.innerHTML = '<div class="modal-box"><h2 id="caseModalTitle">新建案例卡</h2><p id="caseModalHint">仅录入脱敏后的可复用结论；真实后端版会保存并支持审核。</p><form id="caseForm"><div class="form-grid"><div class="field full"><label>案例标题</label><input id="caseTitle" required placeholder="例如：新市场 App 的首轮验证" /></div><div class="field full"><label>脱敏结论</label><textarea id="caseConclusion" required placeholder="写入可复用的判断规则、前置 Gate 或测试方法…"></textarea></div></div><div class="modal-actions"><button type="button" class="secondary" id="closeCaseModal">取消</button><button class="primary" id="caseSubmit">保存案例卡</button></div></form></div>';
       document.body.appendChild(caseModal);
-      const openCaseModal = () => { q('#caseForm').style.display = 'block'; q('#caseForm').reset(); q('#caseModalTitle').textContent = '新建案例卡'; q('#caseModalHint').textContent = '仅录入脱敏后的可复用结论；真实后端版会保存并支持审核。'; caseModal.classList.add('show'); };
+      let pendingCaseCampaign = null;
+      const openCaseModal = (campaign) => { pendingCaseCampaign = campaign || null; q('#caseForm').style.display = 'block'; q('#caseForm').reset(); q('#caseModalTitle').textContent = '保存脱敏案例草稿'; q('#caseModalHint').textContent = '保存后会进入案例知识库的“待审核”列表；不会自动同步到 Dify。'; q('#caseTitle').value = campaign ? campaign.client_name + ' · ' + campaign.title + '复盘' : ''; q('#caseSubmit').textContent = '保存至案例知识库'; caseModal.classList.add('show'); };
       const openCaseDetail = (title, conclusion) => {
         q('#caseModalTitle').textContent = title;
         q('#caseModalHint').textContent = conclusion || '这是脱敏案例的预览内容。下一阶段接入数据库后，会展示完整审核结论与来源。';
         q('#caseForm').style.display = 'none';
         caseModal.classList.add('show');
       };
-      const closeCaseModal = () => { q('#caseForm').style.display = 'block'; caseModal.classList.remove('show'); };
+      const closeCaseModal = () => { q('#caseForm').style.display = 'block'; caseModal.classList.remove('show'); pendingCaseCampaign = null; };
       q('#closeCaseModal').onclick = closeCaseModal;
       caseModal.onclick = (event) => { if (event.target === caseModal) closeCaseModal(); };
       const bindRow = (row) => {
@@ -406,13 +407,8 @@
         event.preventDefault();
         const title = q('#caseTitle').value.trim();
         const conclusion = q('#caseConclusion').value.trim();
-        const list = q('#knowledgePage .project-list');
-        const row = document.createElement('div');
-        row.className = 'project-row';
-        row.innerHTML = '<div class="project-name"><span class="logo mint">+</span><div></div></div><span class="badge yellow">待审核</span><span class="money">新案例</span><span class="project-sub"></span><button class="more" aria-label="更多操作">⋯</button>';
-        row.querySelector('.project-name > div').textContent = title;
-        row.querySelector('.project-sub').textContent = conclusion;
-        list.prepend(row); bindRow(row); closeCaseModal(); showToast('案例卡已创建（当前为本地预览，尚未入库）。');
+        if (!pendingCaseCampaign) { showToast('请从“可沉淀案例”的客户机会详情页创建案例。'); return; }
+        saveCampaignCase(pendingCaseCampaign, title, conclusion);
       };
       const taskPanel = document.createElement('section');
       taskPanel.className = 'card';
@@ -525,17 +521,16 @@
         const historyRows = history.length ? history.map((item) => '<div class="info-row"><span>' + escapeHtml((lifecycleLabels[item.from_stage] || '创建') + ' → ' + (lifecycleLabels[item.to_stage] || item.to_stage)) + '</span><b>' + escapeHtml(item.note || item.created_at) + '</b></div>').join('') : '<p style="color:var(--muted)">暂无状态流转记录。</p>';
         q('#projectPage').innerHTML = '<button class="back" id="backDashboard">← 返回客户机会</button>' +
           '<div class="project-hero"><div><span class="badge purple">' + escapeHtml(lifecycleLabels[campaign.lifecycle_stage] || campaign.lifecycle_stage) + '</span><h1>' + escapeHtml(campaign.client_name || '未归档客户') + '</h1><p><b>客户机会：</b>' + escapeHtml(campaign.title) + ' · ' + escapeHtml(campaign.client_industry || '行业待补充') + ' · ' + escapeHtml(campaign.market) + '</p></div><div style="text-align:right"><small style="color:#c7c8e5">预算</small><div style="font-size:25px;font-weight:750">' + (campaign.budget_usd ? '$' + escapeHtml(campaign.budget_usd) : '待确认') + '</div><small style="color:#c7c8e5">下一步：' + escapeHtml(campaign.next_action || '待人工确认') + '</small></div></div>' +
-          '<div class="two-col"><section class="card document"><div class="card-head"><h2 class="card-title">客户与机会信息</h2><div style="display:flex;gap:10px;flex-wrap:wrap"><button class="secondary" id="editClient">编辑公司</button><button class="secondary" id="editOpportunity">编辑机会</button><button class="primary" id="generateStage">' + workflowActions[workflowStage] + '</button></div></div><p><b>客户背景：</b>' + escapeHtml(campaign.client_profile || '未补充') + '</p><p><b>原始 Brief：</b></p><div class="markdown">' + renderMarkdown(campaign.brief || '') + '</div><h3 style="margin-top:22px">业务阶段（人工确认）</h3><p style="color:var(--muted);font-size:13px">下方按钮只变更业务状态，不调用 AI；AI 生成需点击上方带“（AI）”的按钮并提交事实材料。</p><div style="display:flex;gap:10px;flex-wrap:wrap">' + (transitions || '<span style="color:var(--muted)">当前状态暂无可用流转。</span>') + '</div></section>' +
+          '<div class="two-col"><section class="card document"><div class="card-head"><h2 class="card-title">客户与机会信息</h2><div style="display:flex;gap:10px;flex-wrap:wrap"><button class="secondary" id="editRecord">编辑公司与机会</button><button class="primary" id="generateStage">' + workflowActions[workflowStage] + '</button></div></div><p><b>客户背景：</b>' + escapeHtml(campaign.client_profile || '未补充') + '</p><p><b>原始 Brief：</b></p><div class="markdown">' + renderMarkdown(campaign.brief || '') + '</div><h3 style="margin-top:22px">业务阶段（人工确认）</h3><p style="color:var(--muted);font-size:13px">下方按钮只变更业务状态，不调用 AI；AI 生成需点击上方带“（AI）”的按钮并提交事实材料。</p><div style="display:flex;gap:10px;flex-wrap:wrap">' + (transitions || '<span style="color:var(--muted)">当前状态暂无可用流转。</span>') + '</div></section>' +
           '<section class="card"><div class="card-head"><h2 class="card-title">状态时间线</h2></div><div class="info-list">' + historyRows + '</div></section></div>' +
           '<section class="card" style="margin-top:20px"><div class="card-head"><h2 class="card-title">本机会生成记录</h2><button class="text-link" id="goGenerationList">查看全部生成任务 →</button></div><div class="project-list">' + taskRows + '</div></section><section class="card document" id="opportunityTaskDetail" style="display:none;margin-top:20px"></section>' +
           (campaign.lifecycle_stage === 'case_candidate' ? '<section class="card document" style="margin-top:20px"><div class="card-head"><h2 class="card-title">案例沉淀</h2><button class="primary" id="saveCase">保存脱敏案例草稿</button></div><p>仅保存你人工确认、已脱敏的总结；保存后仍是“待审核”，不会自动同步到 Dify 知识库。</p></section>' : '');
         q('#backDashboard').onclick = () => go('opportunitiesPage');
         q('#goGenerationList').onclick = () => go('generationPage');
         q('#generateStage').onclick = () => requestStageGeneration(campaign, workflowStage);
-        q('#editClient').onclick = () => editClient(campaign);
-        q('#editOpportunity').onclick = () => editOpportunity(campaign);
+        q('#editRecord').onclick = () => openEditRecordModal(campaign);
         const saveCase = q('#saveCase');
-        if (saveCase) saveCase.onclick = () => saveCampaignCase(campaign);
+        if (saveCase) saveCase.onclick = () => openCaseModal(campaign);
         document.querySelectorAll('.stage-transition').forEach((button) => { button.onclick = () => transitionOpportunity(campaign.id, button.dataset.stage); });
         document.querySelectorAll('.task-open').forEach((row) => { row.onclick = () => openTaskInOpportunity(row.dataset.taskId); });
       };
@@ -597,37 +592,39 @@
         } catch (error) { showToast('生成失败：' + error.message); }
         finally { submit.disabled = false; submit.textContent = '提交给 AI 生成'; }
       };
-      const saveCampaignCase = async (campaign) => {
-        const title = window.prompt('案例标题（脱敏后）', campaign.title + '：项目复盘');
-        if (!title) return;
-        const summary = window.prompt('粘贴人工审核后的脱敏结论（不会自动上传到 Dify 知识库）', '');
-        if (!summary) return;
+      const saveCampaignCase = async (campaign, title, summary) => {
         try {
           const response = await fetch(WORKER_API_URL + '/campaigns/' + encodeURIComponent(campaign.id) + '/cases', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ title, summary }) });
           const data = await response.json(); if (!response.ok) throw new Error(data.error || '保存案例失败');
-          showToast('已保存为待审核案例草稿。'); refreshCases();
+          closeCaseModal(); showToast('已保存至案例知识库，状态为“待审核”。'); refreshCases();
         } catch (error) { showToast('保存案例失败：' + error.message); }
       };
-      const editClient = async (campaign) => {
+      const editRecordModal = document.createElement('div');
+      editRecordModal.className = 'modal';
+      editRecordModal.innerHTML = '<div class="modal-box"><h2>编辑公司与客户机会</h2><p>公司信息会同步到该公司的其他机会；机会信息只影响当前项目。</p><form id="editRecordForm"><div class="form-grid"><div class="field"><label>公司名称</label><input id="editClientName" required /></div><div class="field"><label>所属行业</label><input id="editClientIndustry" /></div><div class="field full"><label>客户背景</label><textarea id="editClientProfile"></textarea></div><div class="field"><label>客户机会名称</label><input id="editOpportunityName" required /></div><div class="field"><label>目标市场</label><input id="editOpportunityMarket" required /></div><div class="field"><label>预算（美元）</label><input id="editOpportunityBudget" type="number" /></div></div><div class="modal-actions"><button type="button" class="secondary" id="closeEditRecordModal">取消</button><button class="primary" id="saveEditRecord">保存全部修改</button></div></form></div>';
+      document.body.appendChild(editRecordModal);
+      let pendingEditCampaign = null;
+      const openEditRecordModal = (campaign) => {
         if (!campaign.client_id) { showToast('这是历史未归档记录，请先补录客户。'); return; }
-        const name = window.prompt('公司名称', campaign.client_name || ''); if (name === null || !name.trim()) return;
-        const industry = window.prompt('所属行业（可留空）', campaign.client_industry || ''); if (industry === null) return;
-        const profile = window.prompt('客户背景（可留空）', campaign.client_profile || ''); if (profile === null) return;
-        try {
-          const response = await fetch(WORKER_API_URL + '/clients/' + encodeURIComponent(campaign.client_id), { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name, industry, profile }) });
-          const data = await response.json(); if (!response.ok) throw new Error(data.error || '编辑公司失败');
-          await refreshClientOptions(); await refreshCampaigns(); await openCampaign(campaign); showToast('公司信息已更新，其他关联机会会同步显示。');
-        } catch (error) { showToast('编辑公司失败：' + error.message); }
+        pendingEditCampaign = campaign;
+        q('#editClientName').value = campaign.client_name || ''; q('#editClientIndustry').value = campaign.client_industry || ''; q('#editClientProfile').value = campaign.client_profile || '';
+        q('#editOpportunityName').value = campaign.title || ''; q('#editOpportunityMarket').value = campaign.market || ''; q('#editOpportunityBudget').value = campaign.budget_usd || '';
+        editRecordModal.classList.add('show');
       };
-      const editOpportunity = async (campaign) => {
-        const title = window.prompt('客户机会名称', campaign.title || ''); if (title === null || !title.trim()) return;
-        const market = window.prompt('目标市场', campaign.market || ''); if (market === null || !market.trim()) return;
-        const budget = window.prompt('预算（美元，可留空）', campaign.budget_usd || ''); if (budget === null) return;
+      const closeEditRecordModal = () => { editRecordModal.classList.remove('show'); pendingEditCampaign = null; };
+      q('#closeEditRecordModal').onclick = closeEditRecordModal;
+      editRecordModal.onclick = (event) => { if (event.target === editRecordModal) closeEditRecordModal(); };
+      q('#editRecordForm').onsubmit = async (event) => {
+        event.preventDefault(); if (!pendingEditCampaign) return;
+        const campaign = pendingEditCampaign; const submit = q('#saveEditRecord'); submit.disabled = true; submit.textContent = '正在保存…';
         try {
-          const response = await fetch(WORKER_API_URL + '/campaigns/' + encodeURIComponent(campaign.id), { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ title, market, budget }) });
-          const data = await response.json(); if (!response.ok) throw new Error(data.error || '编辑机会失败');
-          await refreshCampaigns(); await openCampaign(data.campaign); showToast('客户机会已更新。');
-        } catch (error) { showToast('编辑机会失败：' + error.message); }
+          const clientResponse = await fetch(WORKER_API_URL + '/clients/' + encodeURIComponent(campaign.client_id), { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: q('#editClientName').value.trim(), industry: q('#editClientIndustry').value.trim(), profile: q('#editClientProfile').value.trim() }) });
+          const clientData = await clientResponse.json(); if (!clientResponse.ok) throw new Error(clientData.error || '公司信息保存失败');
+          const opportunityResponse = await fetch(WORKER_API_URL + '/campaigns/' + encodeURIComponent(campaign.id), { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ title: q('#editOpportunityName').value.trim(), market: q('#editOpportunityMarket').value.trim(), budget: q('#editOpportunityBudget').value.trim() }) });
+          const opportunityData = await opportunityResponse.json(); if (!opportunityResponse.ok) throw new Error(opportunityData.error || '机会信息保存失败');
+          closeEditRecordModal(); await refreshClientOptions(); await refreshCampaigns(); await openCampaign(opportunityData.campaign); showToast('公司与客户机会已一起保存。');
+        } catch (error) { showToast('保存失败：' + error.message); }
+        finally { submit.disabled = false; submit.textContent = '保存全部修改'; }
       };
       const createCampaignRow = (campaign) => {
         const row = document.createElement('div');
