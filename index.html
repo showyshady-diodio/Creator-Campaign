@@ -845,6 +845,11 @@
         const activeCount = campaigns.filter((campaign) => ['generating', 'ready'].includes(campaign.status)).length;
         q('#dashboard .kpi-grid .kpi:first-child strong').textContent = String(activeCount);
       };
+      const renderCampaignConnectionState = (message) => {
+        const markup = '<p style="padding:18px;color:var(--muted)">' + escapeHtml(message) + '</p>';
+        [q('#dashboard .content-grid .project-list'), q('#opportunitiesPage .project-list')]
+          .filter(Boolean).forEach((list) => { list.innerHTML = markup; });
+      };
       const refreshCampaigns = async () => {
         try {
           const response = await fetch(WORKER_API_URL + '/campaigns?limit=20');
@@ -852,7 +857,8 @@
           if (!response.ok) throw new Error(data.error || '无法读取客户机会');
           renderCampaigns(data.campaigns || []);
         } catch (error) {
-          // Keep the static demo cards visible until the Campaign API is deployed.
+          // Never present old hard-coded sample cards as real client data.
+          renderCampaignConnectionState('暂时无法读取实时客户机会，请刷新页面后重试。');
         }
       };
       q('#refreshTasks').onclick = async () => {
@@ -913,6 +919,10 @@
           clientName.readOnly = true; industry.readOnly = true; profile.readOnly = true;
         } catch (error) { showToast('读取客户失败：' + error.message); }
       };
+      // The HTML contains visual seed content for the first paint only. Clear it
+      // before the API request so an unavailable Worker cannot make sample data
+      // look like a visitor's real workspace.
+      renderCampaignConnectionState('正在读取实时客户机会…');
       refreshTasks();
       refreshCampaigns();
       refreshClientOptions();
