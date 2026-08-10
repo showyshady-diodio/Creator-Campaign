@@ -150,30 +150,20 @@
       <main>
         <section id="dashboard">
           <div class="topbar"><div class="crumb"><strong>项目总览</strong> / 2026 Q3</div><div class="top-actions"><button class="icon-btn" title="通知">♧</button><button class="primary" id="openModal">＋ 新建 Campaign</button></div></div>
-          <h1 class="page-title">早上好，Yvonne</h1><p class="subtitle">这里是你正在推进的海外营销项目。</p>
+          <h1 class="page-title">项目工作台</h1><p class="subtitle">客户机会、项目状态与 Creator 合作数据均从已保存记录读取。</p>
           <div class="kpi-grid">
-            <div class="kpi"><small>进行中的项目</small><strong>4</strong><span class="up">↑ 1 个本周启动</span></div>
-            <div class="kpi"><small>本月可用预算</small><strong>$38,500</strong><span class="up">已规划 62%</span></div>
-            <div class="kpi"><small>待处理风险</small><strong>3</strong><span style="color:#c78018;font-size:12px;font-weight:600">2 个需要客户确认</span></div>
-            <div class="kpi"><small>本周待办</small><strong>12</strong><span style="color:var(--muted);font-size:12px">优先处理 4 项</span></div>
+            <div class="kpi"><small>已保存客户机会</small><strong>—</strong><span style="color:var(--muted);font-size:12px">读取中</span></div>
+            <div class="kpi"><small>预算合计</small><strong>—</strong><span style="color:var(--muted);font-size:12px">按已录入机会计算</span></div>
+            <div class="kpi"><small>待处理风险</small><strong>—</strong><span style="color:var(--muted);font-size:12px">由执行事实与复盘识别</span></div>
+            <div class="kpi"><small>本周待办</small><strong>—</strong><span style="color:var(--muted);font-size:12px">等待项目负责人录入</span></div>
           </div>
           <div class="content-grid">
-            <section class="card"><div class="card-head"><h2 class="card-title">活跃项目</h2><button class="text-link" id="viewProject">查看全部 →</button></div><div class="project-list">
-              <div class="project-row" id="fitnessProject"><div class="project-name"><span class="logo mint">⌁</span><div>Healthy Motion Malaysia<div class="project-sub">AI 健身 App · 马来西亚</div></div></div><span class="badge green">执行中</span><span class="money">$12,000</span><span class="project-sub">第 2 / 6 周</span><button class="more">⋯</button></div>
-              <div class="project-row"><div class="project-name"><span class="logo blue">◈</span><div>Flowdesk Creator Pilot<div class="project-sub">B2B SaaS · 美国</div></div></div><span class="badge purple">方案中</span><span class="money">$18,000</span><span class="project-sub">待客户确认</span><button class="more">⋯</button></div>
-              <div class="project-row"><div class="project-name"><span class="logo orange">◒</span><div>Haven Home UK Launch<div class="project-sub">DTC 家居 · 英国</div></div></div><span class="badge yellow">待启动</span><span class="money">$8,500</span><span class="project-sub">合规检查中</span><button class="more">⋯</button></div>
-              <div class="project-row"><div class="project-name"><span class="logo">⌘</span><div>PicTune Creator Test<div class="project-sub">AI 图片工具 · 美国</div></div></div><span class="badge red">有风险</span><span class="money">$30,000</span><span class="project-sub">归因待修复</span><button class="more">⋯</button></div>
-            </div></section>
-            <section class="card"><div class="card-head"><h2 class="card-title">Healthy Motion · 工作流</h2><button class="text-link" id="openProject">进入项目 →</button></div><div class="workflow">
-              <div class="step done"><div class="step-num">✓</div><div><strong>需求洞察</strong><span>目标、预算与信息缺口已确认</span></div></div>
-              <div class="step done"><div class="step-num">✓</div><div><strong>销售方案</strong><span>方案已确认，进入启动准备</span></div></div>
-              <div class="step current"><div class="step-num">3</div><div><strong>交付评估</strong><span>归因与素材 Gate 待完成</span></div></div>
-              <div class="step"><div class="step-num">4</div><div><strong>落地执行</strong><span>第 2 周投放与 KOL 内容准备</span></div></div>
-            </div></section>
+            <section class="card"><div class="card-head"><h2 class="card-title">客户机会</h2><button class="text-link" id="viewProject">查看全部 →</button></div><div class="project-list" id="dashboardActiveList"><p style="padding:14px;color:var(--muted)">正在读取已保存客户机会…</p></div></section>
+            <section class="card"><div class="card-head"><h2 class="card-title">工作流说明</h2><button class="text-link" id="openProject">进入机会 →</button></div><div class="workflow"><div class="step current"><div class="step-num">1</div><div><strong>选择一个客户机会</strong><span>进入详情后查看其业务阶段、生成记录与下一步。</span></div></div><div class="step"><div class="step-num">2</div><div><strong>人工推进状态</strong><span>AI 只生成建议，不自动推进签约、执行或关闭。</span></div></div><div class="step"><div class="step-num">3</div><div><strong>沉淀履约数据</strong><span>Creator 合作、内容交付和表现快照均归属具体 Campaign。</span></div></div></div></section>
           </div>
           <div class="lower-grid">
-            <section class="card"><div class="card-head"><h2 class="card-title">需要关注</h2><button class="text-link">查看风险 →</button></div><div class="risk-item"><span class="risk-icon">!</span><div><strong>归因事件待确认</strong><p>Healthy Motion 的 trial_start 回传尚未完成验证。</p></div></div><div class="risk-item"><span class="risk-icon">!</span><div><strong>客户审批接近截止</strong><p>Haven Home 的品牌与库存信息仍未确认。</p></div></div></section>
-            <section class="card"><div class="card-head"><h2 class="card-title">今日待办</h2><button class="text-link">全部待办 →</button></div><div class="task done"><span class="check"></span><div><strong>完成本周 Meta 素材复盘</strong><p>Healthy Motion · 数据与复盘</p></div></div><div class="task"><span class="check"></span><div><strong>确认 2 位 KOL 的素材授权条款</strong><p>Healthy Motion · 今日 17:00 前</p></div></div><div class="task"><span class="check"></span><div><strong>发送 Flowdesk 方案初稿</strong><p>Flowdesk · 明日</p></div></div></section>
+            <section class="card"><div class="card-head"><h2 class="card-title">需要关注</h2></div><div class="document"><p>暂无自动生成的风险结论。请在具体机会的执行事实或复盘中记录风险、负责人和截止时间。</p></div></section>
+            <section class="card"><div class="card-head"><h2 class="card-title">今日待办</h2></div><div class="document"><p>待办暂以各客户机会的“下一步”和项目负责人维护的执行记录为准。</p></div></section>
           </div>
         </section>
 
@@ -332,10 +322,10 @@
       };
       const showProject = () => go('projectPage');
       const showDashboard = () => go('dashboard');
-      q('#openProject').onclick = showProject;
-      q('#fitnessProject').onclick = showProject;
-      q('#viewProject').onclick = showProject;
-      q('#backDashboard').onclick = showDashboard;
+      const openOpportunityList = () => go('opportunitiesPage');
+      if (q('#openProject')) q('#openProject').onclick = openOpportunityList;
+      if (q('#viewProject')) q('#viewProject').onclick = openOpportunityList;
+      if (q('#backDashboard')) q('#backDashboard').onclick = showDashboard;
       document.querySelectorAll('.tabs button').forEach((button) => {
         button.onclick = () => {
           document.querySelectorAll('.tabs button').forEach((item) => item.classList.remove('active'));
@@ -981,8 +971,13 @@
           if (!campaigns.length) { list.innerHTML = empty; return; }
           campaigns.forEach((campaign) => list.appendChild(createCampaignRow(campaign)));
         });
-        const activeCount = campaigns.filter((campaign) => ['generating', 'ready'].includes(campaign.status)).length;
-        q('#dashboard .kpi-grid .kpi:first-child strong').textContent = String(activeCount);
+        const activeCount = campaigns.filter((campaign) => !['closed', 'lost', 'case_candidate'].includes(campaign.lifecycle_stage)).length;
+        const totalBudget = campaigns.reduce((sum, campaign) => sum + (Number(campaign.budget_usd) || 0), 0);
+        const waitingCount = campaigns.filter((campaign) => ['awaiting_client', 'delivery_gate'].includes(campaign.lifecycle_stage)).length;
+        const dashboardKpis = q('#dashboard .kpi-grid')?.querySelectorAll('.kpi') || [];
+        if (dashboardKpis[0]) { dashboardKpis[0].querySelector('strong').textContent = String(activeCount); dashboardKpis[0].querySelector('span').textContent = '当前非关闭机会'; }
+        if (dashboardKpis[1]) { dashboardKpis[1].querySelector('strong').textContent = totalBudget ? '$' + totalBudget.toLocaleString() : '—'; dashboardKpis[1].querySelector('span').textContent = '按已录入预算汇总'; }
+        if (dashboardKpis[2]) { dashboardKpis[2].querySelector('strong').textContent = String(waitingCount); dashboardKpis[2].querySelector('span').textContent = '等待客户或启动确认'; }
       };
       const renderCampaignConnectionState = (message) => {
         const markup = '<p style="padding:18px;color:var(--muted)">' + escapeHtml(message) + '</p>';
