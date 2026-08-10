@@ -180,8 +180,8 @@
         <section class="page-view" id="opportunitiesPage">
           <div class="topbar"><div class="crumb"><strong>客户机会</strong> / 销售漏斗</div><button class="primary" id="openModal2">＋ 新建机会</button></div>
           <h1 class="page-title">客户机会</h1><p class="subtitle">从原始 Brief 到方案确认，记录每一个可能签约的项目。</p>
-          <div class="kpi-grid"><div class="kpi"><small>本月新增线索</small><strong>18</strong><span class="up">↑ 22% 较上月</span></div><div class="kpi"><small>方案制作中</small><strong>6</strong><span style="color:var(--muted);font-size:12px">预计金额 $96,000</span></div><div class="kpi"><small>待客户决定</small><strong>3</strong><span style="color:#c78018;font-size:12px">2 项本周跟进</span></div><div class="kpi"><small>本月赢单</small><strong>2</strong><span class="up">$28,500</span></div></div>
-          <section class="card" style="margin-top:24px"><div class="card-head"><h2 class="card-title">机会列表</h2><button class="text-link">筛选与排序 ⌄</button></div><div class="project-list"><div class="project-row"><div class="project-name"><span class="logo blue">◈</span><div>Flowdesk Creator Pilot<div class="project-sub">B2B SaaS · 美国 · 2026/08/14</div></div></div><span class="badge purple">方案中</span><span class="money">$18,000</span><span class="project-sub">下一步：发送方案</span><button class="more">⋯</button></div><div class="project-row"><div class="project-name"><span class="logo orange">◒</span><div>Haven Home UK Launch<div class="project-sub">DTC 家居 · 英国 · 2026/08/12</div></div></div><span class="badge yellow">待确认</span><span class="money">$8,500</span><span class="project-sub">等待品牌资料</span><button class="more">⋯</button></div><div class="project-row"><div class="project-name"><span class="logo">⌘</span><div>PicTune Creator Test<div class="project-sub">AI 图片工具 · 美国 · 2026/08/08</div></div></div><span class="badge purple">方案中</span><span class="money">$30,000</span><span class="project-sub">本周客户提案</span><button class="more">⋯</button></div></div></section>
+          <div class="kpi-grid" id="opportunityKpis"><div class="kpi"><small>已录入客户机会</small><strong>—</strong><span style="color:var(--muted);font-size:12px">读取中</span></div><div class="kpi"><small>新线索 / 需求确认</small><strong>—</strong><span style="color:var(--muted);font-size:12px">读取中</span></div><div class="kpi"><small>方案与客户决策</small><strong>—</strong><span style="color:var(--muted);font-size:12px">读取中</span></div><div class="kpi"><small>执行与复盘</small><strong>—</strong><span style="color:var(--muted);font-size:12px">读取中</span></div></div>
+          <section class="card" style="margin-top:24px"><div class="card-head"><h2 class="card-title">机会列表</h2><button class="text-link" type="button" onclick="location.reload()">刷新数据</button></div><div class="project-list"><p style="padding:18px;color:var(--muted)">正在读取已保存客户机会…</p></div></section>
         </section>
 
         <section class="page-view" id="creatorsPage">
@@ -978,6 +978,19 @@
         if (dashboardKpis[0]) { dashboardKpis[0].querySelector('strong').textContent = String(activeCount); dashboardKpis[0].querySelector('span').textContent = '当前非关闭机会'; }
         if (dashboardKpis[1]) { dashboardKpis[1].querySelector('strong').textContent = totalBudget ? '$' + totalBudget.toLocaleString() : '—'; dashboardKpis[1].querySelector('span').textContent = '按已录入预算汇总'; }
         if (dashboardKpis[2]) { dashboardKpis[2].querySelector('strong').textContent = String(waitingCount); dashboardKpis[2].querySelector('span').textContent = '等待客户或启动确认'; }
+        const opportunityKpis = q('#opportunityKpis')?.querySelectorAll('.kpi') || [];
+        const demandCount = campaigns.filter((campaign) => ['new_lead', 'demand_review'].includes(campaign.lifecycle_stage)).length;
+        const proposalCount = campaigns.filter((campaign) => ['proposal_ready', 'awaiting_client', 'delivery_gate'].includes(campaign.lifecycle_stage)).length;
+        const deliveryCount = campaigns.filter((campaign) => ['executing', 'review'].includes(campaign.lifecycle_stage)).length;
+        const updateOpportunityKpi = (index, value, label) => {
+          if (!opportunityKpis[index]) return;
+          opportunityKpis[index].querySelector('strong').textContent = String(value);
+          opportunityKpis[index].querySelector('span').textContent = label;
+        };
+        updateOpportunityKpi(0, campaigns.length, '已保存的真实商机');
+        updateOpportunityKpi(1, demandCount, '待完成需求确认');
+        updateOpportunityKpi(2, proposalCount, '方案、客户决策或启动 Gate');
+        updateOpportunityKpi(3, deliveryCount, '执行中或待复盘');
       };
       const renderCampaignConnectionState = (message) => {
         const markup = '<p style="padding:18px;color:var(--muted)">' + escapeHtml(message) + '</p>';
