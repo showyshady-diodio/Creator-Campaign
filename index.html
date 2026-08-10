@@ -185,7 +185,7 @@
         </section>
 
         <section class="page-view" id="creatorsPage">
-          <div class="topbar"><div class="crumb"><strong>创作者资源</strong> / 可筛选资源池</div><button class="primary">＋ 添加创作者</button></div>
+          <div class="topbar"><div class="crumb"><strong>创作者资源</strong> / 可筛选资源池</div><button class="primary" id="openCreatorModal">＋ 添加创作者</button></div>
           <h1 class="page-title">创作者资源</h1><p class="subtitle">统一管理候选人、合作记录与素材授权状态。</p>
           <div class="content-grid"><section class="card"><div class="card-head"><h2 class="card-title">马来西亚 · 健身与生活方式</h2><button class="text-link">查看全部 →</button></div><div class="project-list"><div class="project-row"><div class="project-name"><span class="logo mint">M</span><div>Mei Lin Moves<div class="project-sub">TikTok · 健身教程 · 42K 粉丝</div></div></div><span class="badge green">已合作</span><span class="money">中小量级</span><span class="project-sub">素材待审核</span><button class="more">⋯</button></div><div class="project-row"><div class="project-name"><span class="logo blue">A</span><div>Adam Fit MY<div class="project-sub">Instagram · 居家训练 · 76K 粉丝</div></div></div><span class="badge purple">候选</span><span class="money">中小量级</span><span class="project-sub">待询价</span><button class="more">⋯</button></div><div class="project-row"><div class="project-name"><span class="logo orange">S</span><div>Sarah Wellness<div class="project-sub">TikTok · 饮食记录 · 18K 粉丝</div></div></div><span class="badge yellow">待沟通</span><span class="money">微型</span><span class="project-sub">可用档期待确认</span><button class="more">⋯</button></div></div></section><section class="card"><div class="card-head"><h2 class="card-title">筛选维度</h2></div><div class="info-list"><div class="info-row"><span>目标市场</span><b>马来西亚</b></div><div class="info-row"><span>垂类</span><b>健身 / 生活方式</b></div><div class="info-row"><span>平台</span><b>TikTok / Instagram</b></div><div class="info-row"><span>合作目的</span><b>内容与素材验证</b></div><div class="info-row"><span>素材授权</span><b>优先要求</b></div></div></section></div>
         </section>
@@ -1034,9 +1034,10 @@
       creatorWorkspace.style.marginTop = '24px';
       creatorWorkspace.innerHTML = '<div class="card-head"><div><h2 class="card-title">创作者资源池</h2><p style="margin:5px 0 0;color:var(--muted);font-size:12px">Creator 档案独立于项目；合作、报价、履约和数据在 Campaign 中记录。</p></div></div><div class="creator-filter-bar"><div class="field"><label>搜索</label><input id="creatorSearch" placeholder="名称、市场、垂类或标签" /></div><div class="field"><label>市场</label><input id="creatorCountryFilter" placeholder="例如：马来西亚" /></div><div class="field"><label>平台</label><input id="creatorPlatformFilter" placeholder="例如：TikTok" /></div><div class="field"><label>&nbsp;</label><button class="secondary" type="button" id="applyCreatorFilters">筛选资源</button></div></div><div class="creator-list" id="creatorDynamicList"><p style="padding:16px;color:var(--muted)">正在读取创作者资源…</p></div>';
       q('#creatorsPage').appendChild(creatorWorkspace);
-      q('#openCreatorModal').onclick = () => { editingCreatorId = null; q('#creatorForm').reset(); q('#creatorModalTitle').textContent = '添加创作者'; creatorModal.classList.add('show'); };
+      const openNewCreatorModal = () => { editingCreatorId = null; q('#creatorForm').reset(); q('#creatorModalTitle').textContent = '添加创作者'; creatorModal.classList.add('show'); };
+      if (q('#openCreatorModal')) q('#openCreatorModal').onclick = openNewCreatorModal;
       const creatorTopAdd = q('#creatorsPage .topbar .primary');
-      if (creatorTopAdd) creatorTopAdd.onclick = q('#openCreatorModal').onclick;
+      if (creatorTopAdd) creatorTopAdd.onclick = openNewCreatorModal;
       q('#applyCreatorFilters').onclick = () => refreshCreators().catch((error) => showToast('读取创作者失败：' + error.message));
       const creatorNav = Array.from(document.querySelectorAll('.nav button')).find((button) => button.dataset.view === 'creatorsPage');
       if (creatorNav) creatorNav.addEventListener('click', () => refreshCreators().catch((error) => showToast('读取创作者失败：' + error.message)));
