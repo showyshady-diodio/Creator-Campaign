@@ -62,6 +62,22 @@
       .project-row.clickable { cursor: pointer; }
       .project-row.clickable:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
       .project-name { display: flex; align-items: center; gap: 10px; font-weight: 650; }
+      .creator-filter-bar { display:grid; grid-template-columns: minmax(260px,1.45fr) minmax(150px,.7fr) minmax(150px,.7fr) auto; gap:12px; align-items:end; margin:12px 0 16px; }
+      .creator-filter-bar .field { margin:0; }
+      .creator-list { display:flex; flex-direction:column; gap:10px; }
+      .creator-row { display:grid; grid-template-columns:minmax(280px,1.55fr) minmax(105px,.48fr) minmax(110px,.48fr) minmax(220px,1fr) auto; gap:16px; align-items:center; padding:15px 16px; border:1px solid #e9ebf2; border-radius:12px; background:#fff; }
+      .creator-row:hover { border-color:#d9d9f6; background:#fdfdff; }
+      .creator-profile { min-width:0; display:flex; align-items:flex-start; gap:11px; }
+      .creator-title { display:block; font-weight:700; font-size:14px; color:#17213a; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+      .creator-meta { margin-top:4px; color:var(--muted); font-size:12px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+      .creator-tags { display:flex; flex-wrap:wrap; gap:5px; margin-top:8px; }
+      .creator-tags .badge { margin:0!important; font-size:10px; padding:4px 7px; }
+      .creator-stat { min-width:0; text-align:center; }
+      .creator-stat strong { display:block; font-size:14px; color:#17213a; }
+      .creator-stat small { display:block; margin-top:4px; font-size:11px; color:var(--muted); }
+      .creator-summary { font-size:12px; line-height:1.55; color:#5c667c; min-width:0; }
+      .creator-actions { display:flex; gap:7px; justify-content:flex-end; }
+      .creator-actions .secondary { padding:8px 10px; white-space:nowrap; }
       .logo { display: grid; place-items: center; width: 33px; height: 33px; border-radius: 10px; font-size: 16px; background: #eef0ff; }
       .logo.mint { background: #e5fbf1; } .logo.orange { background: #fff1e6; } .logo.blue { background: #e8f3ff; }
       .project-sub { color: var(--muted); font-size: 11px; font-weight: 450; }
@@ -111,7 +127,8 @@
       .modal-actions { display:flex; justify-content:flex-end; gap:9px; margin-top:18px; } .secondary { padding:9px 13px; border:1px solid #dfe3ec; border-radius:9px; color:#586174; background:white; }
       .toast { position:fixed; right:25px; bottom:25px; transform:translateY(20px); padding:11px 14px; border-radius:10px; color:white; background:#20263d; box-shadow:0 10px 25px #15182e44; opacity:0; transition:.2s; } .toast.show { transform:none; opacity:1; }
       @media (max-width: 940px) { .app { grid-template-columns: 1fr; } .sidebar { position:static; height:auto; padding:12px; flex-direction:row; align-items:center; gap:12px; } .brand { padding:0; } .workspace,.nav-label,.user { display:none; } .nav { display:flex; overflow:auto; } .nav button { width:auto; white-space:nowrap; } main { padding:22px 18px 45px; } .kpi-grid { grid-template-columns:repeat(2,1fr); } .content-grid,.two-col,.case-modal-body { grid-template-columns:1fr; } .case-modal-box { max-height:calc(100vh - 24px); } .case-preview-pane { max-height:50vh; } .case-review-sidebar { max-height:30vh; } .execution-kpis { grid-template-columns:repeat(2,1fr); } }
-      @media (max-width: 600px) { .project-row { grid-template-columns:1fr auto; } .project-row > :nth-child(2),.project-row > :nth-child(3),.project-row > :nth-child(4) { display:none; } .top-actions .icon-btn { display:none; } .kpi-grid,.lower-grid { grid-template-columns:1fr; } .form-grid { grid-template-columns:1fr; } .field.full { grid-column:auto; } }
+      @media (max-width: 860px) { .creator-filter-bar { grid-template-columns:1fr 1fr; } .creator-row { grid-template-columns:1fr auto; } .creator-row .creator-stat,.creator-row .creator-summary { display:none; } }
+      @media (max-width: 600px) { .project-row { grid-template-columns:1fr auto; } .project-row > :nth-child(2),.project-row > :nth-child(3),.project-row > :nth-child(4) { display:none; } .top-actions .icon-btn { display:none; } .kpi-grid,.lower-grid { grid-template-columns:1fr; } .form-grid { grid-template-columns:1fr; } .field.full { grid-column:auto; } .creator-filter-bar { grid-template-columns:1fr; } .creator-row { padding:13px; } .creator-actions { grid-column:1/-1; justify-content:flex-start; } }
     </style>
   </head>
   <body>
@@ -758,7 +775,13 @@
         if (!response.ok) throw new Error(data.error || '无法读取创作者资源');
         const creators = data.creators || [];
         const list = q('#creatorDynamicList');
-        if (list) list.innerHTML = creators.length ? creators.map((item) => { const tagHtml = String(item.tags || '').split(',').filter(Boolean).slice(0,5).map((tag) => '<span class="badge purple" style="margin-right:4px">' + escapeHtml(tag) + '</span>').join(''); return '<div class="project-row"><div class="project-name"><span class="logo mint">✦</span><div><b>' + escapeHtml(item.display_name) + '</b><div class="project-sub">' + escapeHtml([item.country, item.primary_platform, item.vertical, item.creator_tier].filter(Boolean).join(' · ') || '待补充基础标签') + '</div><div style="margin-top:6px">' + tagHtml + '</div></div></div><span class="badge ' + (item.availability_status === 'available' ? 'green' : 'purple') + '">' + escapeHtml(item.availability_status || 'unknown') + '</span><span class="money">' + (item.followers ? escapeHtml(Number(item.followers).toLocaleString()) + ' 粉' : '待核验') + '</span><span class="project-sub">' + escapeHtml(item.primary_languages || item.content_formats || item.content_style || '待补充语言与内容形式') + '<br>合作 ' + escapeHtml(item.cooperation_count || 0) + ' 次 · 已签 ' + escapeHtml(item.contracted_count || 0) + ' 次</span><button class="secondary creator-edit" data-creator-id="' + escapeHtml(item.id) + '">编辑</button><button class="secondary creator-profile" data-creator-id="' + escapeHtml(item.id) + '">账号</button></div>'; }).join('') : '<p style="padding:16px;color:var(--muted)">暂无创作者档案。先录入 3–5 位真实可接触的候选人即可。</p>';
+        if (list) list.innerHTML = creators.length ? creators.map((item) => {
+          const tagHtml = String(item.tags || '').split(',').filter(Boolean).slice(0,5).map((tag) => '<span class="badge purple">' + escapeHtml(tag) + '</span>').join('');
+          const availabilityLabel = { available:'可邀约', limited:'档期有限', unavailable:'暂不可用', unknown:'待核验' }[item.availability_status] || item.availability_status || '待核验';
+          const profileMeta = [item.country, item.primary_platform, item.vertical, item.creator_tier].filter(Boolean).join(' · ') || '待补充基础标签';
+          const summary = [item.primary_languages ? '语言：' + item.primary_languages : '', item.content_formats ? '形式：' + item.content_formats : '', '合作 ' + (item.cooperation_count || 0) + ' 次 · 已签 ' + (item.contracted_count || 0) + ' 次'].filter(Boolean).join('<br>');
+          return '<article class="creator-row"><div class="creator-profile"><span class="logo mint">✦</span><div style="min-width:0"><span class="creator-title">' + escapeHtml(item.display_name) + '</span><div class="creator-meta">' + escapeHtml(profileMeta) + '</div><div class="creator-tags">' + (tagHtml || '<span class="badge purple">待补标签</span>') + '</div></div></div><div class="creator-stat"><span class="badge ' + (item.availability_status === 'available' ? 'green' : 'purple') + '">' + escapeHtml(availabilityLabel) + '</span><small>资源可用性</small></div><div class="creator-stat"><strong>' + (item.followers ? escapeHtml(Number(item.followers).toLocaleString()) : '—') + '</strong><small>粉丝 · 均播 ' + (item.avg_views ? escapeHtml(Number(item.avg_views).toLocaleString()) : '—') + '</small></div><div class="creator-summary">' + summary + '</div><div class="creator-actions"><button class="secondary creator-edit" data-creator-id="' + escapeHtml(item.id) + '">编辑</button><button class="secondary creator-profile" data-creator-id="' + escapeHtml(item.id) + '">账号</button></div></article>';
+        }).join('') : '<p style="padding:16px;color:var(--muted)">暂无创作者档案。先录入 3–5 位真实可接触的候选人即可。</p>';
         list?.querySelectorAll('.creator-edit').forEach((button) => button.onclick = () => openCreatorEditor(button.dataset.creatorId));
         list?.querySelectorAll('.creator-profile').forEach((button) => button.onclick = () => openCreatorPlatformEditor(button.dataset.creatorId));
         const dealSelect = q('#dealCreator');
@@ -1001,7 +1024,7 @@
       const creatorWorkspace = document.createElement('section');
       creatorWorkspace.className = 'card';
       creatorWorkspace.style.marginTop = '24px';
-      creatorWorkspace.innerHTML = '<div class="card-head"><div><h2 class="card-title">创作者资源池</h2><p style="margin:5px 0 0;color:var(--muted);font-size:12px">Creator 档案独立于项目；合作、报价、履约和数据在 Campaign 中记录。</p></div><button class="primary" id="openCreatorModal">＋ 添加创作者</button></div><div class="form-grid" style="margin:12px 0"><div class="field"><label>搜索</label><input id="creatorSearch" placeholder="名称、市场、垂类或标签" /></div><div class="field"><label>市场</label><input id="creatorCountryFilter" placeholder="例如：马来西亚" /></div><div class="field"><label>平台</label><input id="creatorPlatformFilter" placeholder="例如：TikTok" /></div><div class="field" style="align-self:end"><button class="secondary" type="button" id="applyCreatorFilters">筛选资源</button></div></div><div class="project-list" id="creatorDynamicList"><p style="padding:16px;color:var(--muted)">正在读取创作者资源…</p></div>';
+      creatorWorkspace.innerHTML = '<div class="card-head"><div><h2 class="card-title">创作者资源池</h2><p style="margin:5px 0 0;color:var(--muted);font-size:12px">Creator 档案独立于项目；合作、报价、履约和数据在 Campaign 中记录。</p></div></div><div class="creator-filter-bar"><div class="field"><label>搜索</label><input id="creatorSearch" placeholder="名称、市场、垂类或标签" /></div><div class="field"><label>市场</label><input id="creatorCountryFilter" placeholder="例如：马来西亚" /></div><div class="field"><label>平台</label><input id="creatorPlatformFilter" placeholder="例如：TikTok" /></div><div class="field"><label>&nbsp;</label><button class="secondary" type="button" id="applyCreatorFilters">筛选资源</button></div></div><div class="creator-list" id="creatorDynamicList"><p style="padding:16px;color:var(--muted)">正在读取创作者资源…</p></div>';
       q('#creatorsPage').appendChild(creatorWorkspace);
       q('#openCreatorModal').onclick = () => { editingCreatorId = null; q('#creatorForm').reset(); q('#creatorModalTitle').textContent = '添加创作者'; creatorModal.classList.add('show'); };
       const creatorTopAdd = q('#creatorsPage .topbar .primary');
