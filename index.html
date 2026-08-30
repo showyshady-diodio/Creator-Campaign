@@ -29,6 +29,10 @@
       .workspace-dot { width: 7px; height: 7px; border-radius: 50%; background: #7bddb1; }
       .nav-label { padding: 0 11px; margin: 9px 0 7px; color: #858bad; font-size: 11px; letter-spacing: .6px; }
       .nav { display: grid; gap: 4px; }
+      .account-nav { display:none; }
+      body[data-product-mode="accounts"] .marketing-nav { display:none; }
+      body[data-product-mode="accounts"] .account-nav { display:grid; }
+      body[data-product-mode="accounts"] .account-nav.nav-label { display:block; }
       .nav button { width: 100%; display: flex; gap: 11px; align-items: center; padding: 10px 11px; border: 0; border-radius: 9px; color: #b8bed8; background: transparent; text-align: left; }
       .nav button:hover { background: #242943; color: #fff; }
       .nav button.active { background: #5a5be0; color: #fff; box-shadow: 0 8px 17px #090b2250; }
@@ -144,14 +148,21 @@
       <aside class="sidebar">
         <div class="brand"><span class="brand-mark">✦</span>Campaign Workspace</div>
         <div class="workspace"><span class="workspace-dot"></span><span>Northstar Agency</span><span style="margin-left:auto">⌄</span></div>
-        <div class="nav-label">工作台</div>
-        <nav class="nav">
+        <div class="nav-label marketing-nav">工作台</div>
+        <nav class="nav marketing-nav">
           <button class="active" data-view="dashboard"><span class="icon">▦</span>项目总览</button>
           <button data-view="opportunitiesPage"><span class="icon">◫</span>客户机会</button>
           <button data-view="creatorsPage"><span class="icon">◉</span>创作者资源</button>
         </nav>
-        <div class="nav-label">运营</div>
-        <nav class="nav"><button data-view="analyticsPage"><span class="icon">◌</span>数据与复盘</button><button data-view="knowledgePage"><span class="icon">▤</span>案例知识库</button></nav>
+        <div class="nav-label marketing-nav">运营</div>
+        <nav class="nav marketing-nav"><button data-view="analyticsPage"><span class="icon">◌</span>数据与复盘</button><button data-view="knowledgePage"><span class="icon">▤</span>案例知识库</button></nav>
+        <div class="nav-label account-nav">账号运营</div>
+        <nav class="nav account-nav" id="accountSecondaryNav">
+          <button class="active" data-account-section="overview"><span class="icon">▦</span>账号总览</button>
+          <button data-account-section="accounts"><span class="icon">◎</span>账号列表</button>
+          <button data-account-section="content"><span class="icon">▤</span>内容计划</button>
+          <button data-account-section="tasks"><span class="icon">◌</span>任务审批</button>
+        </nav>
         <div class="user"><div class="avatar">Y</div><div><b style="display:block;font-size:12px">Yvonne</b><span style="font-size:11px;color:#858bad">产品体验账号</span></div></div>
       </aside>
 
@@ -282,7 +293,7 @@
     <script>
       const q = (selector) => document.querySelector(selector);
       const WORKER_API_URL = 'https://fcampaign-ai-proxy.beijingdiodio.workers.dev';
-      const pageIds = ['dashboard', 'projectPage', 'opportunitiesPage', 'creatorsPage', 'analyticsPage', 'knowledgePage'];
+      const pageIds = ['dashboard', 'projectPage', 'opportunitiesPage', 'creatorsPage', 'analyticsPage', 'knowledgePage', 'accountOpsPage'];
       const escapeHtml = (value = '') => String(value).replace(/[&<>"]/g, char => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;' })[char]);
       const removeThinking = (value = '') => String(value)
         .replace(/<think>[\s\S]*?<\/think>\s*/gi, '')
@@ -334,6 +345,7 @@
       const go = (pageId) => {
         pageIds.forEach((id) => {
           const page = q('#' + id);
+          if (!page) return;
           page.style.display = id === pageId ? 'block' : 'none';
           page.classList.toggle('show', id === pageId);
         });
@@ -355,6 +367,10 @@
       });
       document.querySelectorAll('.nav button').forEach((button) => {
         button.onclick = () => {
+          if (button.dataset.accountSection) return;
+          document.body.dataset.productMode = 'marketing';
+          document.querySelector('[data-product="marketing"]')?.classList.add('active');
+          document.querySelector('[data-product="accounts"]')?.classList.remove('active');
           document.querySelectorAll('.nav button').forEach((item) => item.classList.remove('active'));
           button.classList.add('active');
           go(button.dataset.view);
@@ -365,8 +381,21 @@
         button.onclick = () => {
           document.querySelectorAll('[data-product]').forEach((item) => item.classList.remove('active'));
           button.classList.add('active');
-          if (button.dataset.product === 'accounts') { go('accountOpsPage'); refreshManagedAccounts(); refreshManagedTasks(); }
-          else { go(marketingPages.includes(pageIds[0]) ? 'dashboard' : 'dashboard'); }
+          if (button.dataset.product === 'accounts') {
+            document.body.dataset.productMode = 'accounts';
+            go('accountOpsPage'); refreshManagedAccounts(); refreshManagedTasks();
+          } else {
+            document.body.dataset.productMode = 'marketing';
+            go('dashboard');
+          }
+        };
+      });
+      document.querySelectorAll('[data-account-section]').forEach((button) => {
+        button.onclick = () => {
+          document.querySelectorAll('[data-account-section]').forEach((item) => item.classList.remove('active'));
+          button.classList.add('active'); go('accountOpsPage');
+          const target = { overview: '#managedAccountKpis', accounts: '#managedAccountList', content: '#managedTaskList', tasks: '#managedTaskList' }[button.dataset.accountSection];
+          if (target) setTimeout(() => q(target)?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 0);
         };
       });
       const managedAccountModal = document.createElement('div');
