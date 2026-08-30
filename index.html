@@ -37,6 +37,14 @@
       .avatar { display: grid; place-items: center; width: 30px; height: 30px; border-radius: 50%; color: #4530a2; background: #dcd9ff; font-weight: 700; }
 
       main { min-width: 0; padding: 26px 34px 54px; }
+      .product-nav { display:flex; align-items:center; gap:6px; margin-bottom:24px; padding:5px; width:max-content; background:#eef0f8; border:1px solid var(--line); border-radius:12px; }
+      .product-nav button { border:0; border-radius:8px; padding:8px 13px; color:var(--muted); background:transparent; font-size:13px; font-weight:650; }
+      .product-nav button.active { color:#3738a8; background:#fff; box-shadow:0 2px 8px rgba(35,43,80,.1); }
+      .account-grid { margin-top:24px; display:grid; grid-template-columns:minmax(0,1.4fr) minmax(280px,.7fr); gap:18px; }
+      .account-row { display:grid; grid-template-columns:1.4fr .55fr .55fr .7fr 24px; gap:12px; align-items:center; padding:13px 11px; border-top:1px solid #f0f1f5; }
+      .account-row:first-child { border-top:0; }
+      .account-row button { border:0; background:transparent; color:var(--brand); }
+      .empty-state { padding:28px 18px; color:var(--muted); text-align:center; }
       .topbar, .section-head { display: flex; align-items: center; justify-content: space-between; gap: 20px; }
       .crumb { color: var(--muted); font-size: 13px; }
       .crumb strong { color: var(--ink); font-weight: 680; }
@@ -148,6 +156,10 @@
       </aside>
 
       <main>
+        <nav class="product-nav" aria-label="一级模块">
+          <button class="active" type="button" data-product="marketing">营销工作台</button>
+          <button type="button" data-product="accounts">账号运营</button>
+        </nav>
         <section id="dashboard">
           <div class="topbar"><div class="crumb"><strong>项目总览</strong> / 2026 Q3</div><div class="top-actions"><button class="icon-btn" title="通知">♧</button><button class="primary" id="openModal">＋ 新建 Campaign</button></div></div>
           <h1 class="page-title">项目工作台</h1><p class="subtitle">客户机会、项目状态与 Creator 合作数据均从已保存记录读取。</p>
@@ -202,6 +214,13 @@
           <h1 class="page-title">案例知识库</h1><p class="subtitle">只沉淀人工审核过的脱敏结论，不直接把原始聊天记录自动入库。</p>
           <div class="content-grid"><section class="card"><div class="card-head"><h2 class="card-title">最近更新</h2><button class="text-link">搜索案例 →</button></div><div class="project-list"><div class="project-row"><div class="project-name"><span class="logo mint">01</span><div>新市场 App 的首轮验证<div class="project-sub">马来西亚 · AI 健身 · 指标口径</div></div></div><span class="badge green">已审核</span><span class="money">方法论</span><span class="project-sub">今天更新</span><button class="more">⋯</button></div><div class="project-row"><div class="project-name"><span class="logo blue">02</span><div>B2B SaaS 创作者内容测试<div class="project-sub">美国 · 内容策略 · 变量控制</div></div></div><span class="badge green">已审核</span><span class="money">方法论</span><span class="project-sub">今天更新</span><button class="more">⋯</button></div><div class="project-row"><div class="project-name"><span class="logo orange">03</span><div>新品牌上线前的 Creator 测试<div class="project-sub">英国 · DTC 家居 · 前置条件</div></div></div><span class="badge green">已审核</span><span class="money">方法论</span><span class="project-sub">今天更新</span><button class="more">⋯</button></div></div></section><section class="card"><div class="card-head"><h2 class="card-title">入库原则</h2></div><div class="document"><p>1. 项目关闭后，由人工确认可沉淀的结论。</p><p>2. 删除客户名称、报价、个人信息与敏感材料。</p><p>3. 将“发生了什么”整理为可复用的判断规则、Gate 和测试方法。</p><p>4. 经审核后再同步到 Dify 知识库。</p></div></section></div>
         </section>
+        <section class="page-view" id="accountOpsPage">
+          <div class="topbar"><div class="crumb"><strong>账号运营</strong> / 授权、指标与任务</div><button class="primary" id="openManagedAccount">＋ 接入账号</button></div>
+          <h1 class="page-title">账号运营</h1><p class="subtitle">账号数据、内容计划和任务审批统一沉淀；不保存账号密码，互动与发布必须经过平台授权和人工审批。</p>
+          <div class="kpi-grid" id="managedAccountKpis"><div class="kpi"><small>已接入账号</small><strong>—</strong><span>读取中</span></div><div class="kpi"><small>授权正常</small><strong>—</strong><span>等待平台授权</span></div><div class="kpi"><small>待审批任务</small><strong>—</strong><span>互动类任务默认人工确认</span></div><div class="kpi"><small>近 7 日触达</small><strong>—</strong><span>按同步快照汇总</span></div></div>
+          <div class="account-grid"><section class="card"><div class="card-head"><div><h2 class="card-title">账号列表</h2><p style="margin:5px 0 0;color:var(--muted);font-size:12px">首期计划接入 5 个真实账号</p></div><button class="text-link" id="refreshManagedAccounts">刷新</button></div><div id="managedAccountList" class="project-list"><p class="empty-state">正在读取账号记录…</p></div></section><section class="card"><div class="card-head"><h2 class="card-title">操作边界</h2></div><div class="document"><p><b>账号凭证：</b>仅保存授权引用，不记录密码或原始 Token。</p><p><b>内容发布：</b>仅在平台官方 API、授权范围和内容审核均满足时进入执行队列。</p><p><b>互动任务：</b>默认“待审批”，本版本不提供自动点赞或绕过平台规则的能力。</p><p><b>审计：</b>接入、指标录入、任务创建和审批均写入审计事件。</p></div></section></div>
+          <section class="card" style="margin-top:18px"><div class="card-head"><div><h2 class="card-title">运营任务</h2><p style="margin:5px 0 0;color:var(--muted);font-size:12px">批准代表可进入合规执行队列，不代表已经在平台执行。</p></div></div><div id="managedTaskList" class="project-list"><p class="empty-state">正在读取任务…</p></div></section>
+        </section>
       </main>
     </div>
     <div class="modal" id="campaignModal"><div class="modal-box"><h2>新建客户机会</h2><p>客户可以复用；每个机会独立保存 Brief、阶段和 AI 生成记录。</p><form id="campaignForm"><div class="form-grid"><div class="field"><label>选择已有客户（可选）</label><select id="clientSelect"><option value="">新建客户</option></select></div><div class="field"><label>客户 / 公司名称</label><input id="clientName" required placeholder="例如：Aster Fitness" /></div><div class="field"><label>机会 / 项目名称</label><input id="opportunityName" required placeholder="例如：马来西亚首轮获客验证" /></div><div class="field"><label>目标市场</label><input id="opportunityMarket" required placeholder="例如：马来西亚" /></div><div class="field"><label>预算（美元）</label><input id="opportunityBudget" type="number" placeholder="例如：12000" /></div><div class="field"><label>所属行业（可选）</label><input id="clientIndustry" placeholder="例如：AI 健身 App" /></div><div class="field full"><label>客户画像 / 背景（可选）</label><textarea id="clientProfile" placeholder="已有市场、产品形态、决策方式等；后续同一客户机会可复用。"></textarea></div><div class="field full"><label>客户原始诉求</label><textarea id="opportunityBrief" required placeholder="粘贴客户访谈、销售反馈或 Campaign Brief…"></textarea></div></div><div class="modal-actions"><button type="button" class="secondary" id="closeModal">取消</button><button class="primary">创建机会并生成方案</button></div></form></div></div>
@@ -211,7 +230,7 @@
       const $ = (s) => document.querySelector(s);
       // 这是公开的 Worker 地址；Dify API Key 只保存在 Worker 的 Secret 中。
       const WORKER_API_URL = 'https://fcampaign-ai-proxy.beijingdiodio.workers.dev';
-      const pageIds = ['dashboard', 'projectPage', 'opportunitiesPage', 'creatorsPage', 'analyticsPage', 'knowledgePage'];
+      const pageIds = ['dashboard', 'projectPage', 'opportunitiesPage', 'creatorsPage', 'analyticsPage', 'knowledgePage', 'accountOpsPage'];
       const go = (pageId) => { pageIds.forEach(id => { const page = $('#' + id); page.style.display = id === pageId ? 'block' : 'none'; page.classList.toggle('show', id === pageId); }); window.scrollTo({top:0,behavior:'smooth'}); };
       const showProject = () => go('projectPage');
       const showDashboard = () => go('dashboard');
@@ -341,6 +360,72 @@
           go(button.dataset.view);
         };
       });
+      const marketingPages = ['dashboard', 'projectPage', 'opportunitiesPage', 'creatorsPage', 'analyticsPage', 'knowledgePage', 'generationPage'];
+      document.querySelectorAll('[data-product]').forEach((button) => {
+        button.onclick = () => {
+          document.querySelectorAll('[data-product]').forEach((item) => item.classList.remove('active'));
+          button.classList.add('active');
+          if (button.dataset.product === 'accounts') { go('accountOpsPage'); refreshManagedAccounts(); refreshManagedTasks(); }
+          else { go(marketingPages.includes(pageIds[0]) ? 'dashboard' : 'dashboard'); }
+        };
+      });
+      const managedAccountModal = document.createElement('div');
+      managedAccountModal.className = 'modal';
+      managedAccountModal.innerHTML = '<div class="modal-box"><h2>接入账号</h2><p>录入平台账号和负责人；真实接入时只保存官方 OAuth 的授权引用。</p><form id="managedAccountForm"><div class="form-grid"><div class="field"><label>平台</label><input id="managedPlatform" required placeholder="例如：抖音" /></div><div class="field"><label>账号名称 / Handle</label><input id="managedHandle" required placeholder="例如：品牌官方账号" /></div><div class="field"><label>负责人</label><input id="managedOwner" required placeholder="例如：运营小张" /></div><div class="field"><label>授权状态</label><select id="managedAuthorization"><option value="pending">待授权</option><option value="authorized">已授权</option></select></div></div><div class="modal-actions"><button type="button" class="secondary" id="closeManagedAccount">取消</button><button class="primary">保存账号</button></div></form></div>';
+      document.body.appendChild(managedAccountModal);
+      const renderManagedAccountKpis = (accounts, tasks) => {
+        const cells = q('#managedAccountKpis').querySelectorAll('.kpi');
+        const authorized = accounts.filter((item) => item.authorization_status === 'authorized').length;
+        const pending = tasks.filter((item) => item.task_status === 'pending_approval').length;
+        const reach = accounts.reduce((sum, item) => sum + (Number(item.reach) || 0), 0);
+        [[accounts.length, '账号记录'], [authorized, '已完成官方授权'], [pending, '等待人工审批'], [reach ? reach.toLocaleString() : '—', '按最近快照汇总']].forEach((item, index) => { cells[index].querySelector('strong').textContent = item[0]; cells[index].querySelector('span').textContent = item[1]; });
+      };
+      const refreshManagedAccounts = async () => {
+        try {
+          const response = await fetch(WORKER_API_URL + '/managed-accounts?limit=20'); const data = await response.json();
+          if (!response.ok) throw new Error(data.error || '无法读取账号');
+          const list = q('#managedAccountList'); list.innerHTML = '';
+          if (!(data.accounts || []).length) list.innerHTML = '<p class="empty-state">暂未接入账号。首期可从这里逐个录入 5 个已获授权的测试账号。</p>';
+          (data.accounts || []).forEach((account) => {
+            const row = document.createElement('div'); row.className = 'account-row';
+            row.innerHTML = '<div><b></b><div class="project-sub"></div></div><span></span><span></span><span class="badge"></span><button type="button">›</button>';
+            row.querySelector('b').textContent = account.handle; row.querySelector('.project-sub').textContent = '负责人 · ' + account.owner_name;
+            row.children[1].textContent = account.platform; row.children[2].textContent = account.follower_count ? Number(account.follower_count).toLocaleString() + ' 粉丝' : '尚无快照';
+            const badge = row.querySelector('.badge'); const authorized = account.authorization_status === 'authorized'; badge.className = 'badge ' + (authorized ? 'green' : 'yellow'); badge.textContent = authorized ? '已授权' : '待授权';
+            list.appendChild(row);
+          });
+          window.__managedAccounts = data.accounts || [];
+          renderManagedAccountKpis(window.__managedAccounts, window.__managedTasks || []);
+        } catch (error) { q('#managedAccountList').innerHTML = '<p class="empty-state">暂时无法读取账号记录。请确认 Worker 已部署且 migration-008 已执行。</p>'; }
+      };
+      const refreshManagedTasks = async () => {
+        try {
+          const response = await fetch(WORKER_API_URL + '/managed-operation-tasks?limit=20'); const data = await response.json();
+          if (!response.ok) throw new Error(data.error || '无法读取任务');
+          const list = q('#managedTaskList'); list.innerHTML = '';
+          if (!(data.tasks || []).length) list.innerHTML = '<p class="empty-state">暂无运营任务。账号接入后，可创建经过审批的内容计划或互动建议。</p>';
+          (data.tasks || []).forEach((task) => {
+            const row = document.createElement('div'); row.className = 'project-row';
+            const pending = task.task_status === 'pending_approval';
+            row.innerHTML = '<div><b></b><div class="project-sub"></div></div><span></span><span class="badge"></span><span class="project-sub"></span><button class="text-link" type="button"></button>';
+            row.querySelector('b').textContent = task.task_kind; row.querySelector('.project-sub').textContent = task.handle + ' · ' + task.platform;
+            row.children[1].textContent = task.scheduled_for || '未排期'; const badge = row.querySelector('.badge'); badge.className = 'badge ' + (pending ? 'yellow' : 'green'); badge.textContent = pending ? '待审批' : task.task_status;
+            const action = row.querySelector('button'); action.textContent = pending ? '批准' : '已记录'; action.disabled = !pending;
+            if (pending) action.onclick = async () => { const approve = await fetch(WORKER_API_URL + '/managed-operation-tasks/' + encodeURIComponent(task.id) + '/approve', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ actor_name:'web-user' }) }); const result = await approve.json(); if (!approve.ok) return showToast(result.error || '审批失败'); showToast('任务已批准，仍需有效平台授权才可执行。'); refreshManagedTasks(); };
+            list.appendChild(row);
+          });
+          window.__managedTasks = data.tasks || [];
+          renderManagedAccountKpis(window.__managedAccounts || [], window.__managedTasks);
+        } catch (error) { q('#managedTaskList').innerHTML = '<p class="empty-state">暂时无法读取任务。请确认 Worker 已部署且 migration-008 已执行。</p>'; }
+      };
+      q('#openManagedAccount').onclick = () => managedAccountModal.classList.add('show');
+      q('#refreshManagedAccounts').onclick = () => { refreshManagedAccounts(); refreshManagedTasks(); };
+      q('#closeManagedAccount').onclick = () => managedAccountModal.classList.remove('show');
+      managedAccountModal.onclick = (event) => { if (event.target === managedAccountModal) managedAccountModal.classList.remove('show'); };
+      q('#managedAccountForm').onsubmit = async (event) => {
+        event.preventDefault(); const response = await fetch(WORKER_API_URL + '/managed-accounts', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ platform:q('#managedPlatform').value.trim(), handle:q('#managedHandle').value.trim(), owner_name:q('#managedOwner').value.trim(), authorization_status:q('#managedAuthorization').value, actor_name:'web-user' }) }); const data = await response.json();
+        if (!response.ok) return showToast(data.error || '保存账号失败'); managedAccountModal.classList.remove('show'); event.currentTarget.reset(); showToast('账号已保存；请在平台侧完成授权后再创建执行任务。'); refreshManagedAccounts();
+      };
       const modal = q('#campaignModal');
       const prepareOpportunityModal = () => {
         modal.querySelector('h2').textContent = '新建客户机会';
@@ -577,7 +662,8 @@
         return 'new_brief';
       };
       const renderOpportunityDetail = (data) => {
-        const { campaign, tasks = [], history = [], execution_updates: executionUpdates = [], creator_deals: creatorDeals = [], deliverables = [] } = data;
+        const { campaign, tasks = [], history = [], execution_updates: executionUpdates = [], creator_deals: creatorDeals = [], deliverables = [], warnings = [] } = data;
+        const dataWarnings = warnings.length ? '<section class="card" style="margin-top:20px;border-left:4px solid #d89b2b"><div class="document"><b>数据加载提示</b><ul>' + warnings.map((item) => '<li>' + escapeHtml(item) + '</li>').join('') + '</ul></div></section>' : '';
         const transitions = (allowedTransitions[campaign.lifecycle_stage] || []).map((stage) => '<button class="secondary stage-transition" data-stage="' + stage + '">' + transitionLabels[stage] + '</button>').join('');
         const workflowStage = toWorkflowStage(campaign.lifecycle_stage);
         const generateAction = workflowStage ? '<button class="primary" id="generateStage">' + workflowActions[workflowStage] + '</button>' : '';
@@ -599,7 +685,7 @@
           '<div class="project-hero"><div><span class="badge purple">' + escapeHtml(lifecycleLabels[campaign.lifecycle_stage] || campaign.lifecycle_stage) + '</span><h1>' + escapeHtml(campaign.client_name || '未归档客户') + '</h1><p><b>客户机会：</b>' + escapeHtml(campaign.title) + ' · ' + escapeHtml(campaign.client_industry || '行业待补充') + ' · ' + escapeHtml(campaign.market) + '</p></div><div style="text-align:right"><small style="color:#c7c8e5">预算</small><div style="font-size:25px;font-weight:750">' + (campaign.budget_usd ? '$' + escapeHtml(campaign.budget_usd) : '待确认') + '</div><small style="color:#c7c8e5">下一步：' + escapeHtml(campaign.next_action || '待人工确认') + '</small></div></div>' +
           '<div class="two-col"><section class="card document"><div class="card-head"><h2 class="card-title">客户与机会信息</h2><div style="display:flex;gap:10px;flex-wrap:wrap"><button class="secondary" id="editRecord">编辑公司与机会</button>' + generateAction + '</div></div><p><b>客户背景：</b>' + escapeHtml(campaign.client_profile || '未补充') + '</p><p><b>原始 Brief：</b></p><div class="markdown">' + renderMarkdown(campaign.brief || '') + '</div><h3 style="margin-top:22px">业务阶段（人工确认）</h3><p style="color:var(--muted);font-size:13px">下方按钮只变更业务状态，不调用 AI；AI 生成需点击上方带“（AI）”的按钮并提交事实材料。</p><div style="display:flex;gap:10px;flex-wrap:wrap">' + (transitions || '<span style="color:var(--muted)">当前状态暂无可用流转。</span>') + '</div></section>' +
           '<section class="card"><div class="card-head"><h2 class="card-title">状态时间线</h2></div><div class="info-list">' + historyRows + '</div></section></div>' +
-          executionSection + dealSection + contentSection + '<section class="card" style="margin-top:20px"><div class="card-head"><h2 class="card-title">本机会生成记录</h2><button class="text-link" id="goGenerationList">查看全部生成任务 →</button></div><div class="project-list">' + taskRows + '</div></section><section class="card document" id="opportunityTaskDetail" style="display:none;margin-top:20px"></section>' +
+          executionSection + dealSection + contentSection + dataWarnings + '<section class="card" style="margin-top:20px"><div class="card-head"><h2 class="card-title">本机会生成记录</h2><button class="text-link" id="goGenerationList">查看全部生成任务 →</button></div><div class="project-list">' + taskRows + '</div></section><section class="card document" id="opportunityTaskDetail" style="display:none;margin-top:20px"></section>' +
           (campaign.lifecycle_stage === 'case_candidate' ? '<section class="card document" style="margin-top:20px"><div class="card-head"><h2 class="card-title">案例沉淀</h2><button class="primary" id="saveCase">保存脱敏案例草稿</button></div><p>仅保存你人工确认、已脱敏的总结；保存后仍是“待审核”，不会自动同步到 Dify 知识库。</p></section>' : '');
         q('#backDashboard').onclick = () => go('opportunitiesPage');
         q('#goGenerationList').onclick = () => go('generationPage');
