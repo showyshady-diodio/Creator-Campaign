@@ -297,10 +297,17 @@
       const WORKER_API_URL = 'https://fcampaign-ai-proxy.beijingdiodio.workers.dev';
       const pageIds = ['dashboard', 'projectPage', 'opportunitiesPage', 'creatorsPage', 'analyticsPage', 'knowledgePage', 'accountOpsPage'];
       const escapeHtml = (value = '') => String(value).replace(/[&<>"]/g, char => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;' })[char]);
-      const removeThinking = (value = '') => String(value)
-        .replace(/<think>[\s\S]*?<\/think>\s*/gi, '')
-        .replace(/<\/?think>/gi, '')
-        .trim();
+      const removeThinking = (value = '') => {
+        const source = String(value);
+        const outsideThinking = source.replace(/<think>[\s\S]*?<\/think>\s*/gi, '').trim();
+        if (outsideThinking) return outsideThinking.replace(/<\/?think>/gi, '').trim();
+        // Compatibility for tasks created before the Worker-side safeguard:
+        // show only an explicit final Markdown section, never the reasoning.
+        const heading = /^(?:#{1,3}\s*(?:项目方案摘要|一、客户 Brief 摘要|项目复盘与扩量决策|阶段复盘与下一轮建议|案例沉淀草稿|参考经验与适用边界))/gm;
+        let match; let start = -1;
+        while ((match = heading.exec(source))) start = match.index;
+        return start >= 0 ? source.slice(start).replace(/<\/think>\s*$/i, '').trim() : '';
+      };
       const renderInline = (value = '') => escapeHtml(value)
         .replace(/`([^`]+)`/g, '<code>$1</code>')
         .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
