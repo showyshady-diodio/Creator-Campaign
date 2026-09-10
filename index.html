@@ -292,6 +292,8 @@
     -->
     <script>
       const q = (selector) => document.querySelector(selector);
+      // Shared form reader: Creator, delivery and snapshot dialogs all use it.
+      const value = (selector) => q(selector)?.value.trim() || '';
       const WORKER_API_URL = 'https://fcampaign-ai-proxy.beijingdiodio.workers.dev';
       const pageIds = ['dashboard', 'projectPage', 'opportunitiesPage', 'creatorsPage', 'analyticsPage', 'knowledgePage', 'accountOpsPage'];
       const escapeHtml = (value = '') => String(value).replace(/[&<>"]/g, char => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;' })[char]);
